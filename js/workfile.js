@@ -21,7 +21,7 @@ var WorkFile = (function () {
     DB.useMemory(d.config, d.transactions || []);
     st = { id: o.id || U.uid(), name: o.name, dirty: o.dirty || 0, savedName: o.savedName || null, savedAt: o.savedAt || null, plainOrigin: !!o.plainOrigin };
     ws = fresh();
-    return UI.reload().then(function () { return Share.useKey(o.salt, o.iter, o.key); }).then(function (changed) { return changed ? UI.saveCfg() : null; })
+    return LineageUI.note(d.config && d.config.lineage, o.name).then(UI.reload).then(function () { return Share.useKey(o.salt, o.iter, o.key); }).then(function (changed) { return changed ? UI.saveCfg() : null; })
       .then(function () { armIdle(); return writeDraft(); })
       .then(function () { App.hasLocalBudget = false; location.hash = o.route || '#/home'; App.render(); });
   }
@@ -59,19 +59,19 @@ var WorkFile = (function () {
     if (!st) return Promise.reject(new Error('No budget file is open.'));
     if (saving) return Promise.reject(new Error('Already saving.'));
     saving = true;
-    var mine = st, dirtyAtStart = st.dirty;
-    return payload().then(function (p) {
+    var mine = st, dirtyAtStart = st.dirty, lin;
+    return LineageUI.stamp().then(function (l) { lin = l; return payload(); }).then(function (p) {
       var k = keyNow();
       return Vault.seal(p, k.key, k.salt, k.iter).then(function (text) {
         var name = Vault.fileName(p.savedAt);
         U.download(name, text, 'application/octet-stream');
         if (st === mine) { mine.dirty = Math.max(0, mine.dirty - dirtyAtStart); mine.savedName = name; mine.savedAt = p.savedAt; }
-        return writeDraft().then(function () { return { name: name, count: p.transactions.length }; });
+        return LineageUI.saved(lin, name).then(writeDraft).then(function () { return { name: name, count: p.transactions.length, rev: lin.rev }; });
       });
     }).then(function (r) { saving = false; return r; }, function (e) { saving = false; throw e; });
   }
   function saveFlow() {
-    save().then(function (r) { App.render(); UI.toast('Saved ' + r.name + ' (' + r.count + ' transactions) and checked: it opens with your passphrase. Keep it with your budget files; open the newest one next time.'); })
+    save().then(function (r) { App.render(); UI.toast('Saved ' + r.name + ' (revision ' + r.rev + ', ' + r.count + ' transactions) and checked: it opens with your passphrase. Keep it with your budget files; open the newest one next time.'); })
       .catch(function (e) { App.render(); UI.toast('Not saved: ' + e.message); });
   }
   /* back to the welcome screen; keepDraft = locked for being idle (the recovery copy stays) */
@@ -119,7 +119,9 @@ var WorkFile = (function () {
       h('div', null, h('span', { class: 'muted' }, 'Opened: '), st.name),
       h('div', null, h('span', { class: 'muted' }, 'Last saved: '), st.savedName ? st.savedName + ' at ' + new Date(st.savedAt).toLocaleString() : 'not yet in this session'),
       h('div', null, h('span', { class: 'muted' }, 'Not saved yet: '), st.dirty ? st.dirty + ' change' + (st.dirty === 1 ? '' : 's') : 'nothing'),
+      h('div', null, h('span', { class: 'muted' }, 'Revision: '), App.cfg.lineage ? App.cfg.lineage.rev + ' (the next save is ' + (App.cfg.lineage.rev + 1) + ')' : 'none yet (the first save is 1)'),
       h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn primary', onclick: saveFlow }, 'Save file'),
+        h('button', { type: 'button', class: 'btn', onclick: LineageUI.mergeFlow }, 'Merge in another file…'),
         !ws.confirmClose ? h('button', { type: 'button', class: 'btn', onclick: function () { if (!st.dirty) return close(false); ws.confirmClose = true; App.render(); } }, 'Close file') : null));
     if (ws.confirmClose) s.appendChild(h('div', { class: 'toast warn', role: 'alert' }, h('span', null, 'Close without saving? ' + st.dirty + ' change' + (st.dirty === 1 ? '' : 's') + ' since you last saved will be lost, and the recovery copy is deleted.'),
       h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn primary', onclick: function () { ws.confirmClose = false; save().then(function () { return close(false); }).catch(function (e) { UI.toast('Not saved: ' + e.message); }); } }, 'Save, then close'),
@@ -187,6 +189,7 @@ var WorkFile = (function () {
           App.render();
         }, function (err) { ws.msg = 'Could not read the file: ' + err.message; App.render(); });
       } })));
+    if (ws.pending) { c.appendChild(pendingCard()); return c; }
     if (ws.file) {
       c.appendChild(h('div', { class: 'ok strong' }, 'Chosen: ' + ws.file.name + (ws.file.createdAt ? ' (saved ' + new Date(ws.file.createdAt).toLocaleString() + ')' : '')));
       if (ws.file.format === 'plain') {
@@ -229,10 +232,29 @@ var WorkFile = (function () {
       ? Vault.open(f.text, {}).then(function (r) { return newKey().then(function (k) { return { data: r.data, key: k.key, salt: k.salt, iter: k.iter, plain: true }; }); })
       : Vault.open(f.text, { pass: ws.pass });
     p.then(function (r) {
-      return start(r.data, { name: f.name, key: r.key, salt: r.salt, iter: r.iter, plainOrigin: !!r.plain }).then(function () {
-        UI.toast('Opened ' + f.name + ': ' + r.data.transactions.length + ' transactions. Save a new file when you are done.');
+      return LineageUI.check(r.data).then(function (c) {
+        if (LineageUI.warningText(c)) { ws.busy = false; ws.pending = { r: r, f: f, c: c }; App.render(); return; }   // older or forked: you decide
+        return go(r, f, false);
       });
     }).catch(function (e) { ws.busy = false; ws.msg = e.message; App.render(); });
+  }
+  function go(r, f, thenMerge) {
+    ws.pending = null;
+    return start(r.data, { name: f.name, key: r.key, salt: r.salt, iter: r.iter, plainOrigin: !!r.plain }).then(function () {
+      var rev = r.data.config && r.data.config.lineage ? ' (revision ' + r.data.config.lineage.rev + ')' : '';
+      UI.toast('Opened ' + f.name + rev + ': ' + r.data.transactions.length + ' transactions. Save a new file when you are done.');
+      if (thenMerge) LineageUI.mergeFlow();
+    });
+  }
+  /* an older or forked copy: say so plainly, and let you choose */
+  function pendingCard() {
+    var pd = ws.pending, older = pd.c.state === 'older';
+    return h('div', { class: 'toast warn stack-sm', role: 'alert' }, h('strong', null, older ? 'There is a newer copy' : 'Two copies were changed separately'), h('span', null, LineageUI.warningText(pd.c)),
+      h('div', { class: 'row' },
+        older ? h('button', { type: 'button', class: 'btn primary', onclick: function () { ws.pending = null; ws.file = null; ws.pass = ''; App.render(); var i = document.getElementById('wf-file'); if (i) i.focus(); } }, 'Choose the newer file')
+          : h('button', { type: 'button', class: 'btn primary', onclick: function () { go(pd.r, pd.f, true).catch(function (e) { UI.toast(e.message); }); } }, 'Open, then merge in the other copy…'),
+        h('button', { type: 'button', class: 'btn', onclick: function () { go(pd.r, pd.f, false).catch(function (e) { UI.toast(e.message); }); } }, 'Open this one anyway'),
+        older ? null : h('button', { type: 'button', class: 'btn link', onclick: function () { ws.pending = null; ws.file = null; ws.pass = ''; App.render(); } }, 'Choose another file')));
   }
   function newCard() {
     var c = h('section', { class: 'card pad stack', 'aria-label': 'Start a new budget' }, h('h2', null, 'Start a new budget'),

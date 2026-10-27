@@ -1,7 +1,7 @@
 /* Settings: categories and limits, trips, big expenses, Excel history, backups. */
 var Settings = (function () {
   'use strict';
-  var h = U.h, pendingRestore = null, excel = null, confirmErase = false, confirmRemoveExcel = false, askExtras = false, lastBuf = null, lastName = '';
+  var h = U.h, pendingFile = null, pendingRestore = null, excel = null, confirmErase = false, confirmRemoveExcel = false, askExtras = false, lastBuf = null, lastName = '';
   function analyseExcel() {
     return ExcelImport.analyse(lastBuf, App.cfg, { askExtras: askExtras }).then(function (r) { excel = r; excel.fileName = lastName; App.render(); })
       .catch(function (err) { excel = { error: err.message }; App.render(); });
@@ -405,12 +405,26 @@ var Settings = (function () {
       U.readFile(f).then(function (text) {
         return Share.withPass(function (pass) { return Share.openText(text, pass); }, { title: 'Open a locked backup', verb: 'Open backup' }).then(function (data) {
         if (!data || data.app !== 'household-budget' || !data.config || !Array.isArray(data.transactions)) throw new Error('This is not a backup from this app.');
-        return Safety.snapshot('restore').then(function () { return DB.replaceAll(data.config, data.transactions); }).then(UI.reload).then(Share.adoptKey).then(function () { App.render(); UI.toast('Restored ' + data.transactions.length + ' transactions from ' + (data.savedAt || 'the backup').slice(0, 10) + '.'); }) });
+        // an older or separately changed file: say so first, and offer to merge it in instead
+        return LineageUI.check(data).then(function (c) { if (LineageUI.warningText(c)) { pendingFile = { data: data, name: f.name, c: c }; App.render(); return; } return restoreFile(data); });
+        });
       }).catch(function (err) { UI.toast('Could not restore: ' + err.message); });
     } });
+    function restoreFile(data) {
+        pendingFile = null;
+        return Safety.snapshot('restore').then(function () { return DB.replaceAll(data.config, data.transactions); }).then(UI.reload).then(Share.adoptKey).then(function () { App.render(); UI.toast('Restored ' + data.transactions.length + ' transactions from ' + (data.savedAt || 'the backup').slice(0, 10) + '.'); });
+    }
     s2.appendChild(h('div', { class: 'row', style: { alignItems: 'flex-end' } },
       h('button', { type: 'button', class: 'btn primary', onclick: function () { exportBackup(); } }, 'Download budget file'),
       h('div', { class: 'field', style: { flex: '1 1 260px' } }, h('label', { for: 'rf' }, 'Restore from a budget file or backup (replaces everything here)'), restore)));
+    s2.appendChild(h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn', onclick: LineageUI.mergeFlow }, 'Merge a budget file into this budget…'),
+      h('span', { class: 'small muted' }, App.cfg.lineage ? 'This budget: revision ' + App.cfg.lineage.rev + '.' : 'Revisions start with the first budget file you download.')));
+    if (pendingFile) s2.appendChild(h('div', { class: 'toast warn stack-sm', role: 'alert' }, h('strong', null, pendingFile.c.state === 'older' ? 'That file is older than this budget' : 'That file and this budget were changed separately'),
+      h('span', null, LineageUI.warningText(pendingFile.c)),
+      h('div', { class: 'row' },
+        h('button', { type: 'button', class: 'btn primary', onclick: function () { var pf = pendingFile; pendingFile = null; App.render(); Promise.all([DB.getConfig(), DB.allTx()]).then(function (r) { LineageUI.mergePanel({ config: r[0], transactions: r[1] }, pf.data, pf.name); }); } }, 'Merge it in instead'),
+        h('button', { type: 'button', class: 'btn danger', onclick: function () { var pf = pendingFile; restoreFile(pf.data).then(App.render).catch(function (err) { UI.toast('Could not restore: ' + err.message); }); } }, 'Replace this budget with it anyway'),
+        h('button', { type: 'button', class: 'btn', onclick: function () { pendingFile = null; App.render(); } }, 'Cancel'))));
     if (!Share.backupLockOn()) s2.appendChild(h('div', { class: 'toast warn', role: 'status' }, 'Every budget file is locked with a passphrase, and none is set yet: set one under Shared snapshot below before downloading. Until then nothing is written to your backup folder either.'));
     if (!confirmErase) s2.appendChild(h('button', { type: 'button', class: 'btn danger', style: { alignSelf: 'flex-start' }, onclick: function () { confirmErase = true; App.render(); } }, 'Erase everything in this browser'));
     else s2.appendChild(h('div', { class: 'toast warn', role: 'alert' }, h('span', null, 'Erase all ' + App.txs.length + ' transactions and your categories? Download a backup first if unsure.'),
@@ -419,11 +433,15 @@ var Settings = (function () {
     return h('div', { class: 'stack', style: { gap: '24px' } }, s, s2);
   }
   function exportBackup() {
-    var data = { app: 'household-budget', version: 1, savedAt: new Date().toISOString(), config: App.cfg, transactions: App.txs };
-    return Share.ensureKey('Budget files are locked with your snapshot passphrase. Type it once to continue.').then(function () { return Share.encodeBackup(data); }).then(function (text) {
+    var data, lin;
+    return Share.ensureKey('Budget files are locked with your snapshot passphrase. Type it once to continue.').then(LineageUI.stamp).then(function (l) {
+      lin = l; data = { app: 'household-budget', version: 1, savedAt: new Date().toISOString(), config: App.cfg, transactions: App.txs };
+      return Share.encodeBackup(data);
+    }).then(function (text) {
       U.download(Vault.fileName(data.savedAt), text, 'application/octet-stream');
+      LineageUI.saved(lin, Vault.fileName(data.savedAt));
       App.cfg.lastBackup = new Date().toISOString();
-      return UI.saveCfg().then(function () { App.render(); UI.toast('Budget file downloaded (' + App.txs.length + ' transactions), checked: it opens with your passphrase. Keep it somewhere private.'); });
+      return UI.saveCfg().then(function () { App.render(); UI.toast('Budget file downloaded (revision ' + lin.rev + ', ' + App.txs.length + ' transactions), checked: it opens with your passphrase. Keep it somewhere private.'); });
     }).catch(function (e) { UI.toast('Could not make the backup: ' + e.message); });
   }
   return { render: render, renderBackup: renderBackup, rulesSection: rulesSection, subnav: subnav, exportBackup: exportBackup };

@@ -12,13 +12,13 @@ var DB = (function () {
   function useMemory(cfg, txs) { mem = cfg ? { cfg: clone(cfg), tx: new Map((txs || []).map(function (t) { return [t.id, clone(t)]; })) } : null; }
   function inMemory() { return !!mem; }
   /* a write in memory: same rules and hooks as a database write, done completely or not at all */
-  function memWrite(fn) {
+  function memWrite(fn, quiet) {
     if (readOnly) return Promise.reject(new Error(RO));
-    fire('start');
+    if (!quiet) fire('start');
     return Promise.resolve().then(function () {
       var next = { cfg: mem.cfg, tx: new Map(mem.tx) };
-      fn(next); mem = next; fire('end', true);
-    }).catch(function (e) { fire('end', false); throw e; });
+      fn(next); mem = next; if (!quiet) fire('end', true);
+    }).catch(function (e) { if (!quiet) fire('end', false); throw e; });
   }
   function fire(k, ok) { hooks[k].forEach(function (f) { try { f(ok); } catch (e) {} }); }
   function onWrite(start, end) { hooks.start.push(start); hooks.end.push(end); }
@@ -42,8 +42,9 @@ var DB = (function () {
     });
   }
   /* Every write is one IndexedDB transaction: it is saved completely or not at all, even if the tab closes. */
-  function run(store, mode, fn) {
+  function run(store, mode, fn, quiet) {
     var w = mode === 'readwrite' && store !== 'meta';
+    if (w && quiet) { if (readOnly) return Promise.reject(new Error(RO)); w = false; }   // housekeeping write: no hooks (not a change)
     if (w && readOnly) return Promise.reject(new Error(RO));
     if (w) fire('start');
     return open().then(function (d) {
@@ -79,7 +80,8 @@ var DB = (function () {
   function putAll(cfg, list) { if (txHook) txHook(list); if (mem) return memWrite(function (m) { m.cfg = clone(cfg); list.forEach(function (r) { m.tx.set(r.id, clone(r)); }); }); return multi(function (c, x) { c.put(cfg, 'main'); list.forEach(function (r) { x.put(r); }); }); }
 
   function getConfig() { if (mem) return Promise.resolve(clone(mem.cfg)); return run('config', 'readonly', function (s) { return s.get('main'); }); }
-  function saveConfig(cfg) { if (mem) return memWrite(function (m) { m.cfg = clone(cfg); }); return run('config', 'readwrite', function (s) { return s.put(cfg, 'main'); }); }
+  /* quiet: housekeeping (the save record of a file just written) — not counted as a change, starts no backup */
+  function saveConfig(cfg, quiet) { if (mem) return memWrite(function (m) { m.cfg = clone(cfg); }, quiet); return run('config', 'readwrite', function (s) { return s.put(cfg, 'main'); }, quiet); }
 
   function allTx() { if (mem) return Promise.resolve(Array.from(mem.tx.values()).map(clone)); return run('tx', 'readonly', function (s) { return s.getAll(); }).then(function (r) { return r || []; }); }
   function putTx(list) {

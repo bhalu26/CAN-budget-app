@@ -149,8 +149,8 @@ var Share = (function () {
   function save() {
     var key = sessionKey(), s = cfgShare();
     if (!key) return Promise.reject(new Error('Unlock with the passphrase first.'));
-    var p = payload(), name = fileName(p.savedAt);
-    return lock(p, key, s.salt, s.iter).then(function (text) {
+    var p, name, lin;
+    return LineageUI.stamp().then(function (l) { lin = l; p = payload(); name = fileName(p.savedAt); return lock(p, key, s.salt, s.iter); }).then(function (text) {
       var where;
       if (dir) {
         where = allow(dir, true).then(function () {
@@ -160,7 +160,7 @@ var Share = (function () {
       return where.then(function (w) {
         s.lastSnapshot = { at: p.savedAt, name: name, tx: App.txs.length, where: dir ? 'folder' : 'download', bytes: text.length };
         s.history = [s.lastSnapshot].concat((s.history || []).filter(function (x) { return x.name !== name; })).slice(0, KEEP);
-        return UI.saveCfg().then(function () { return { name: name, where: w, tx: App.txs.length }; });
+        return UI.saveCfg().then(function () { return LineageUI.saved(lin, name); }).then(function () { return { name: name, where: w, tx: App.txs.length }; });
       });
     });
   }

@@ -1,4 +1,4 @@
-OUR BUDGET - version 22
+OUR BUDGET - version 23
 ========================
 
 What it is
@@ -378,3 +378,15 @@ Version 22: one reliable budget file, and "work from a file" for the hosted page
 - Work from a file (the hosted page, or "Work from a budget file" on the first screen): open your budget file, work,
   press Save file. The budget stays in the open tab; only a locked recovery copy is kept, offered back if the tab closes
   before you save. Leaving with unsaved changes asks first; 30 minutes without use locks it. See docs/HOSTING-GITHUB.md.
+
+Version 23: never work on an old copy
+- Every budget file you save (Save file, Download budget file, a shared snapshot) has a revision number: 1, 2, 3...
+  The message after saving says which, and the Budget file page / Backup & sharing shows the current one.
+- Opening an older file says so before anything opens: "There is a newer copy: revision 1 ... You already saved
+  revision 2 on ... (file name)". Choose the newer file, or open this one anyway.
+- If two copies were changed separately (say the laptop and the phone both worked from revision 1), the app says
+  "Two copies were changed separately" and offers to merge them. Compare and merge shows what each side added, changed
+  and deleted, keeps both sides' new lines and the later edit of a line changed on both, and lets you keep either
+  side's categories and settings. Undo is offered right after. Also under Budget file > "Merge in another file..."
+  and Backup & sharing > "Merge a budget file into this budget...".
+- On the Mac, restoring a file that is older than the budget in the browser stops first and offers to merge instead.
