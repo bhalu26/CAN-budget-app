@@ -1,0 +1,24 @@
+# This repository holds the app's code only. Budget data must never be committed.
+
+# budget files, backups and snapshots (all versions)
+*.budget
+*.budgetsnap
+budget-*.json
+
+# seed, rules and bank statements (the app has no .json/.csv/.xlsx files of its own)
+*.json
+*.csv
+*.xlsx
+*.xls
+*.ofx
+*.qfx
+*.pdf
+
+# private folder, test output, tooling
+private/
+out/
+node_modules/
+
+# system files
+.DS_Store
+Thumbs.db
