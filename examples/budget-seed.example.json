@@ -1,0 +1,29 @@
+{
+  "currency": "CAD",
+  "cutOver": "",
+  "groups": [
+    { "name": "Home", "categories": [
+      { "name": "Rent", "limit": 1500, "fixed": true },
+      { "name": "Utilities", "limit": 150, "fixed": true },
+      { "name": "Phone & internet", "limit": 100, "fixed": true }
+    ] },
+    { "name": "Everyday", "categories": [
+      { "name": "Groceries", "limit": 600 },
+      { "name": "Dine out", "limit": 200 },
+      { "name": "Transport", "limit": 150 },
+      { "name": "Subscriptions", "limit": 50 }
+    ] },
+    { "name": "Other", "categories": [
+      { "name": "Health", "limit": 100 },
+      { "name": "Gifts", "limit": 50 },
+      { "name": "Travel", "period": "year", "yearlyLimit": 2000 }
+    ] },
+    { "name": "Saving", "kind": "saving", "categories": [
+      { "name": "Emergency fund", "target": 300 },
+      { "name": "Retirement", "target": 200 }
+    ] }
+  ],
+  "bigExpenses": [
+    { "name": "Car insurance", "amount": 1200, "repeats": "yearly", "due": "2027-03" }
+  ]
+}
