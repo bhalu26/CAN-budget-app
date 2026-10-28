@@ -14,7 +14,7 @@ var RecurringUI = (function () {
   function isSub(it) { return it.kind === 'expense' && it.categoryId === 'subscriptions'; }
   function perYear(it) { return Recurring.perYear(it.cadence, it.amount); }
   function snapshot() { return { r: JSON.parse(JSON.stringify(App.cfg.recurring)), i: App.cfg.recurringIgnore.slice() }; }
-  function save(msg, undo) { return UI.saveCfg().then(function () { App.render(); UI.toast(msg, undo); }); }
+  function save(msg, undo) { return UI.saveCfg().then(function () { App.render(); UI.toast(msg, undo); return autoLog({ force: true }); }); }
   function restore(b) { return function () { App.cfg.recurring = b.r; App.cfg.recurringIgnore = b.i; save('Undone.'); }; }
 
   /* Other screens call this (a bill's "Make this recurring…", G B, links): go to the page, with the Add form filled in when asked. */
@@ -36,7 +36,7 @@ var RecurringUI = (function () {
     main.appendChild(h('div', { class: 'row between' }, h('h1', null, 'Bills & subscriptions'),
       h('button', { type: 'button', class: 'btn primary', onclick: function () { st.adding = true; st.focusAdd = true; st.err = ''; App.render(); } }, '+ Add')));
     main.appendChild(Settings.subnav('bills'));
-    main.appendChild(h('p', { class: 'muted', style: { margin: 0 } }, 'What repeats: rent, phone, subscriptions, paycheques. Found from your transactions; nothing leaves this computer.'));
+    main.appendChild(h('p', { class: 'muted', style: { margin: 0 } }, 'What repeats: rent, phone, subscriptions, paycheques. Found from your transactions; nothing leaves this computer. Anything not recorded by the end of its month is logged for you (marked "Logged automatically"), and taken out again when the real payment is imported.'));
     if (on.length) main.appendChild(h('div', { class: 'grid-tiles' },
       h('div', { class: 'card tile' }, h('div', { class: 'small muted' }, 'Recurring bills'), h('div', { class: 'big' }, U.money(yearly, { whole: true }) + ' a year'), h('div', { class: 'small muted' }, 'about ' + U.money(yearly / 12, { whole: true }) + ' a month · ' + on.length + ' bill' + (on.length === 1 ? '' : 's'))),
       h('div', { class: 'card tile' }, h('div', { class: 'small muted' }, 'Subscriptions'), h('div', { class: 'big' }, U.money(subs, { whole: true }) + ' a year'), h('div', { class: 'small muted' }, on.filter(isSub).length + ' in the Subscriptions category')),
@@ -129,11 +129,42 @@ var RecurringUI = (function () {
       h('div', { class: 'field' }, h('label', { for: 'rc-cat-' + uid }, 'Category'), cat)));
     row.appendChild(h('div', { class: 'row' },
       h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: it.amountMode === 'varies', onchange: function (e) { change('amountMode', e.target.checked ? 'varies' : 'fixed', it.name + (e.target.checked ? ': amount varies.' : ': fixed amount.')); } }), h('span', null, 'Amount varies')),
+      h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: it.autoLog !== false, onchange: function (e) { change('autoLog', e.target.checked, e.target.checked ? it.name + ' will be logged for you if it is not recorded by the end of the month.' : it.name + ' will not be logged for you.'); } }), h('span', null, 'Log it for me if it is not recorded by the end of the month')),
       st.confirmDel === uid ? null : h('button', { type: 'button', class: 'btn link', 'aria-label': 'Delete ' + it.name, onclick: function () { st.confirmDel = uid; App.render(); } }, 'Delete')));
     if (st.confirmDel === uid) row.appendChild(h('div', { class: 'toast warn', role: 'alert' }, h('span', null, 'Delete "' + it.name + '"? Its transactions stay as they are.'),
       h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn danger', onclick: function () { var b = snapshot(); st.confirmDel = null; st.editing = null; App.cfg.recurring = items.filter(function (x) { return x.id !== uid; }); save(it.name + ' deleted.', restore(b)); } }, 'Delete'),
         h('button', { type: 'button', class: 'btn', onclick: function () { st.confirmDel = null; App.render(); } }, 'Keep it'))));
     return row;
+  }
+
+  /* Logs bills and paycheques not recorded by the end of their month (Recurring.autoLog): on start-up, when the date changes,
+     after an import or opening a file, and when a bill's setting changes. Resolves to a sentence about what it did ('' for nothing);
+     quiet: no message of its own (the caller adds the sentence to its own). Undo takes the logged lines out again. */
+  var ranOn = '';
+  function autoLog(o) {
+    o = o || {};
+    if (App.readOnly || !App.cfg) return Promise.resolve('');
+    var today = U.today(); if (!o.force && ranOn === today) return Promise.resolve(''); ranOn = today;
+    var first = !App.cfg.autoLogFrom; if (first) App.cfg.autoLogFrom = today.slice(0, 7);   // nothing from before this month is logged
+    var r = Recurring.autoLog(App.cfg, App.txs, today, new Date().toISOString());
+    if (!r.add.length && !r.drop.length) return (first ? DB.saveConfig(App.cfg, true) : Promise.resolve()).then(function () { return ''; });
+    App.cfg.recurring = App.cfg.recurring.map(function (it) {
+      var add = r.logged[it.id] || [], gone = r.unlog[it.id] || []; if (!add.length && !gone.length) return it;
+      return Object.assign({}, it, { logged: (it.logged || []).filter(function (d) { return gone.indexOf(d) < 0; }).concat(add).slice(-120) });
+    });
+    var names = function (l) { var x = l.slice(0, 3).map(function (t) { return t.desc + ' ' + U.money(t.amount, { cents: true }) + ' (' + U.shortDate(t.date) + ')'; }).join(', '); return x + (l.length > 3 ? ' and ' + (l.length - 3) + ' more' : ''); };
+    var msg = [r.add.length ? 'Logged ' + r.add.length + ' recurring item' + (r.add.length === 1 ? '' : 's') + ' not recorded by the end of the month: ' + names(r.add) + '.' : '',
+      r.drop.length ? 'Removed ' + r.drop.length + ' automatically logged line' + (r.drop.length === 1 ? '' : 's') + ' now that the real payment is in: ' + names(r.drop) + '.' : ''].filter(Boolean).join(' ');
+    var addIds = r.add.map(function (t) { return t.id; });
+    return DB.putAll(App.cfg, r.add).then(function () { return r.drop.length ? DB.deleteTx(r.drop.map(function (t) { return t.id; })) : null; }).then(UI.reload).then(function () {
+      if (o.quiet) return msg;
+      App.render();
+      UI.toast(msg, function () {   // the logged lines go; the removed ones come back as yours (so they are not removed again)
+        var stamp = new Date().toISOString(), back = r.drop.map(function (t) { return Object.assign({}, t, { updatedAt: stamp }); });
+        DB.deleteTx(addIds).then(function () { return back.length ? DB.putTx(back) : null; }).then(UI.reload).then(function () { App.render(); UI.toast('Undone. Those dates will not be logged again.'); });
+      });
+      return msg;
+    });
   }
 
   function addForm(items, today) {
@@ -166,5 +197,5 @@ var RecurringUI = (function () {
     } }, 'Add'), h('button', { type: 'button', class: 'btn', onclick: function () { st.adding = false; st.err = ''; st.form = blank(); App.render(); } }, 'Cancel')));
     return add;
   }
-  return { render: render, open: open };
+  return { render: render, open: open, autoLog: autoLog };
 })();

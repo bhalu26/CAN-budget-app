@@ -108,6 +108,7 @@
     if (r.route === 'rules') RulesManager.setTest(r.q);
     UI.closeMenu();
     App.render();
+    RecurringUI.autoLog();   // only does anything when the date has changed since it last ran
     var m = document.getElementById('main'); if (m) m.focus({ preventScroll: true });
     window.scrollTo(0, 0);
     U.animateIn(m, 'enter');
@@ -119,6 +120,7 @@
     if (r.route === 'rules') RulesManager.setTest(r.q);
     App.render();
     U.animateIn(document.getElementById('main'), 'enter');
+    return RecurringUI.autoLog();   // bills and paycheques not recorded by the end of last month
   }).catch(function (e) {
     var main = U.clear(document.getElementById('main'));
     main.appendChild(h('div', { class: 'toast warn', role: 'alert' }, 'This browser would not open local storage (' + e.message + '). Use Chrome or Edge, and not a private window.'));

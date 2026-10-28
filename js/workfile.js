@@ -23,7 +23,7 @@ var WorkFile = (function () {
     ws = fresh();
     return LineageUI.note(d.config && d.config.lineage, o.name).then(UI.reload).then(function () { return Share.useKey(o.salt, o.iter, o.key); }).then(function (changed) { return changed ? UI.saveCfg() : null; })
       .then(function () { armIdle(); return writeDraft(); })
-      .then(function () { App.hasLocalBudget = false; location.hash = o.route || '#/home'; App.render(); });
+      .then(function () { App.hasLocalBudget = false; location.hash = o.route || '#/home'; App.render(); return RecurringUI.autoLog({ force: true }); });
   }
   function fresh() { return { file: null, pass: '', msg: '', busy: false, show: false, seedCfg: null, seedName: '', np1: '', np2: '', nmsg: '', rec: {}, confirmDiscard: null, confirmClose: false, lockedNote: '' }; }
   function payload() {

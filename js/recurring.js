@@ -1,6 +1,7 @@
 /* Recurring bills, subscriptions and paycheques, and the month-end estimate. Pure functions: "today" is always passed in,
    nothing is stored about matches (everything is recomputed from transactions, so edits, deletes and imports update at once).
-   An item: { id, name, key, kind: 'expense'|'income', cadence, anchor: 'YYYY-MM-DD', amount, amountMode: 'fixed'|'varies', categoryId, active } */
+   An item: { id, name, key, kind: 'expense'|'income', cadence, anchor: 'YYYY-MM-DD', amount, amountMode: 'fixed'|'varies', categoryId, active,
+              autoLog (false = never log it for you), logged: dates already logged for you } */
 var Recurring = (function () {
   'use strict';
   var CADENCES = [
@@ -48,7 +49,7 @@ var Recurring = (function () {
     (ignore || []).forEach(function (k) { skip[k] = 1; });                         // dismissed: "KEY|kind"
     (existing || []).forEach(function (it) { skip[it.key + '|' + it.kind] = 1; });   // already one of your items
     txs.forEach(function (t) {
-      if (!t.desc || t.notRecurring || t.date < from || t.date > today) return;
+      if (!t.desc || t.notRecurring || t.auto || t.date < from || t.date > today) return;   // a line logged for you is not a payment seen
       var kind = kindOf(t); if (!kind) return;
       var key = M.merchantKey(t.desc); if (!key) return;
       var g = groups[key + '|' + kind] || (groups[key + '|' + kind] = { key: key, kind: kind, byDate: {}, cats: {}, names: [] });
@@ -111,7 +112,7 @@ var Recurring = (function () {
 
   /* ---------- matching and status ---------- */
   function matches(item, txs) {
-    return txs.filter(function (t) { return t.desc && !t.notRecurring && kindOf(t) === item.kind && M.merchantKey(t.desc) === item.key; })
+    return txs.filter(function (t) { return !t.notRecurring && ((item.id && t.recurringId === item.id) || (t.desc && kindOf(t) === item.kind && M.merchantKey(t.desc) === item.key)); })   // a line logged for it counts too
       .sort(function (a, b) { return a.date < b.date ? -1 : 1; });
   }
   /* Expected dates between from and to, each matched to at most one transaction (closest within the tolerance). */
@@ -183,10 +184,46 @@ var Recurring = (function () {
     return { spent: spent, bills: bills, everyday: everyday, estimate: estimate, limit: s.limit, left: U.round2(s.limit - estimate), daysLeft: daysLeft, parts: parts.sort(function (a, b) { return b.add - a.add; }) };
   }
 
+  /* ---------- logging what was not recorded ----------
+     Once a month is over (and the item's few days' leeway have passed), a date with nothing recorded for it is logged for you:
+     a transaction with the item's name, amount and category. Only from cfg.autoLogFrom (the month this came in) and the day
+     the item was added, for active items not set to "don't log". Each date is logged once: a logged line you delete stays deleted.
+     When the real payment turns up later (an import), the logged line is no longer needed and is dropped, unless you edited it.
+     -> { add: [new transactions], drop: [logged lines to remove], logged: { itemId: [dates] }, unlog: { itemId: [dates] } } */
+  function autoLog(cfg, txs, today, nowIso) {
+    var out = { add: [], drop: [], logged: {}, unlog: {} }, start = (cfg.autoLogFrom || today.slice(0, 7)) + '-01', monthEnd = addDays(today.slice(0, 8) + '01', -1);
+    var real = txs.filter(function (t) { return !t.auto; });
+    (cfg.recurring || []).forEach(function (it) {
+      var c = BY_ID[it.cadence];
+      if (!c || !it.id || it.active === false || it.autoLog === false || !(it.amount > 0) || (it.kind !== 'expense' && it.kind !== 'income')) return;
+      var from = start, made = (it.createdAt || '').slice(0, 10), to = monthEnd, settled = addDays(today, -c.tol - 1);
+      if (/^\d{4}-\d\d-\d\d$/.test(made) && made > from) from = made;   // nothing from before you added it
+      if (settled < to) to = settled;
+      if (to < from) return;
+      var done = {}, mine = {};
+      (it.logged || []).forEach(function (d) { done[d] = 1; });
+      txs.forEach(function (t) { if (t.auto && t.auto.item === it.id) mine[t.auto.date] = t; });
+      status(it, real, from, to, today).forEach(function (s) {
+        var a = mine[s.date];
+        if (s.tx) {   // recorded for real: a logged line you did not touch goes
+          if (a && a.updatedAt === a.createdAt) { out.drop.push(a); (out.unlog[it.id] = out.unlog[it.id] || []).push(s.date); }
+          return;
+        }
+        if (a || done[s.date]) return;
+        var cat = it.kind === 'income' ? (it.categoryId || '_income') : (it.categoryId || null);
+        out.add.push({ id: U.uid(), source: 'manual', createdAt: nowIso, updatedAt: nowIso, flags: ['Logged automatically'], amount: U.round2(it.amount), expr: null,
+          categoryId: cat, type: cat ? M.typeFor(cfg, cat) : 'pending', date: s.date, desc: it.name, note: 'Logged automatically: ' + it.name + ' was not recorded by the end of the month.',
+          tripId: null, needsTag: !cat, reviewReason: cat ? undefined : 'Logged automatically; choose a category', recurringId: it.id, auto: { item: it.id, date: s.date } });
+        (out.logged[it.id] = out.logged[it.id] || []).push(s.date);
+      });
+    });
+    return out;
+  }
+
   /* For "Make this recurring" from one transaction: its likely cadence (from other payments to the same place) and the next date on or after today. */
   function guess(txs, t, today) {
     var kind = kindOf(t), key = M.merchantKey(t.desc || ''); if (!kind || !key) return null;
-    var dates = {}; txs.forEach(function (x) { if (!x.notRecurring && x.desc && kindOf(x) === kind && M.merchantKey(x.desc) === key) dates[x.date] = 1; }); dates[t.date] = 1;
+    var dates = {}; txs.forEach(function (x) { if (!x.notRecurring && !x.auto && x.desc && kindOf(x) === kind && M.merchantKey(x.desc) === key) dates[x.date] = 1; }); dates[t.date] = 1;
     var ds = Object.keys(dates).sort(), gaps = []; for (var i = 1; i < ds.length; i++) gaps.push(gap(ds[i - 1], ds[i]));
     var semi = ds.length >= 4 ? semiPattern(ds) : null, med = median(gaps);
     var cad = semi ? BY_ID.semimonthly : gaps.length ? CADENCES.filter(function (c) { return !c.semi && med >= c.min && med <= c.max; })[0] : null;
@@ -198,5 +235,5 @@ var Recurring = (function () {
   function itemFrom(f, nowIso) {
     return { id: U.uid(), name: f.name, key: f.key, kind: f.kind, cadence: f.cadence, anchor: f.anchor, amount: f.amount, amountMode: f.amountMode, categoryId: f.categoryId, day2: f.day2, active: true, createdAt: nowIso };
   }
-  return { itemFrom: itemFrom, matches: matches, guess: guess, kindOf: kindOf, CADENCES: CADENCES, BY_ID: BY_ID, detect: detect, schedule: schedule, status: status, upcoming: upcoming, monthEstimate: monthEstimate, perYear: perYear, addDays: addDays, addMonths: addMonths, gap: gap, median: median };
+  return { autoLog: autoLog, itemFrom: itemFrom, matches: matches, guess: guess, kindOf: kindOf, CADENCES: CADENCES, BY_ID: BY_ID, detect: detect, schedule: schedule, status: status, upcoming: upcoming, monthEstimate: monthEstimate, perYear: perYear, addDays: addDays, addMonths: addMonths, gap: gap, median: median };
 })();

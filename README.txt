@@ -1,4 +1,4 @@
-OUR BUDGET - version 23
+OUR BUDGET - version 24
 ========================
 
 What it is
@@ -390,3 +390,14 @@ Version 23: never work on an old copy
   side's categories and settings. Undo is offered right after. Also under Budget file > "Merge in another file..."
   and Backup & sharing > "Merge a budget file into this budget...".
 - On the Mac, restoring a file that is older than the budget in the browser stops first and offers to merge instead.
+
+Version 24: recurring items logged for you
+- A bill, subscription or paycheque in Bills & subscriptions that has nothing recorded for a date by the end of its
+  month is logged for you: a line with its name, amount and category, marked "Logged automatically" (a note says why).
+  It is done the first time you open the app after the month ends, once the bill's few days' leeway have passed
+  (a bill due on the 30th may be paid on the 2nd). A message lists what was logged, with Undo.
+- Only from the month this came in (nothing older is filled in), and only from the day you added the bill.
+  Paused bills are skipped. Each bill has "Log it for me if it is not recorded by the end of the month" under Edit.
+- When the real payment is imported later, the logged line is taken out, so nothing is counted twice; the import
+  message says so. A logged line you edited is treated as yours and kept. A logged line you delete stays deleted.
+- An amount that varies is logged at its usual amount; a bill without a category waits in Review.

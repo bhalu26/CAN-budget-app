@@ -168,8 +168,10 @@ var Importer = (function () {
       return linked.length ? DB.putTx(linked).then(UI.reload).then(function () { return linked.length / 2; }) : 0;
     }).then(function (pairs) {
       f.done = { rows: chosen.length, tx: list.length, review: App.txs.filter(function (t) { return t.batchId === batchId && t.needsTag; }).length, batchId: batchId, pairs: pairs };
+      return RecurringUI.autoLog({ force: true, quiet: true });   // a real payment replaces a line logged for it
+    }).then(function (logged) {
       analyse(f);
-      if (!quiet) { App.render(); UI.toast('Imported ' + chosen.length + ' of ' + f.items.length + ' rows from ' + f.name + '.', function () { undo(batchId); }); }
+      if (!quiet) { App.render(); UI.toast('Imported ' + chosen.length + ' of ' + f.items.length + ' rows from ' + f.name + '.' + (logged ? ' ' + logged : ''), function () { undo(batchId); }); }
       return chosen.length;
     });
   }
@@ -181,8 +183,10 @@ var Importer = (function () {
     App.cfg.batches = (App.cfg.batches || []).filter(function (b) { return b.id !== batchId; });
     (App.cfg.accounts || []).forEach(function (a) { if (a.balances) a.balances = a.balances.filter(function (b) { return b.batchId !== batchId; }); });
     return Safety.snapshot('undo-import').then(function () { return DB.deleteTx(ids); }).then(function () { return partners.length ? DB.putTx(partners) : null; }).then(UI.saveCfg).then(UI.reload).then(function () {
+      return RecurringUI.autoLog({ force: true, quiet: true });   // a bill the import had paid is missing again
+    }).then(function (logged) {
       files.forEach(function (f) { if (f.done && f.done.batchId === batchId) f.done = null; analyse(f); });
-      App.render(); UI.toast('Undone: ' + ids.length + ' transactions removed.');
+      App.render(); UI.toast('Undone: ' + ids.length + ' transactions removed.' + (logged ? ' ' + logged : ''));
     });
   }
 
