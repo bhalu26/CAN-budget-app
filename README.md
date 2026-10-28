@@ -27,6 +27,8 @@ You need a desktop browser: Chrome, Edge or Safari.
 1. Pick a budget seed file (online: **Start a new budget**). To try it out, use [`examples/budget-seed.example.json`](examples/budget-seed.example.json); change the categories and limits to your own later in Settings.
 2. Set a passphrase (online: straight away; on your computer: Settings › Backup & sharing). Every file the app saves is locked with it.
 3. Add expenses by hand (**+ Add expense**), or import a bank CSV (**Import**).
+
+**Just looking?** Load the [demo budget](examples/DEMO.md): a made-up household's 2026 with every feature in use, plus a few problems planted on purpose for testing.
 4. Online: press **Save file** when you are done, and keep the `.budget` file somewhere private.
 
 > **Keep your passphrase safe.** Nobody can open your files without it, including you. The app can print a passphrase sheet for you to keep at home.
@@ -59,7 +61,7 @@ You need a desktop browser: Chrome, Edge or Safari.
 ```
 index.html        the app (open this)
 css/  js/         the app's code: plain JavaScript, no build step, no dependencies
-examples/         a sample budget seed to start from
+examples/         a starter budget seed, and a demo budget for 2026 (see examples/DEMO.md)
 USER-GUIDE.md     how to use each part of the app
 CHANGELOG.md      what changed in each version
 ```

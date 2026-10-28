@@ -25,3 +25,4 @@ Thumbs.db
 
 # the sample seed is generic and meant to be shared
 !examples/*.example.json
+!examples/demo-budget-2026.json

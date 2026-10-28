@@ -3,6 +3,11 @@
 Versions follow [Semantic Versioning](https://semver.org). Older budget files keep opening in newer versions.
 1.0.0 is the first public release; 0.x versions were private builds (their old build number is in brackets).
 
+## Unreleased
+
+**New**
+- A demo budget (`examples/demo-budget-2026.json`): a made-up household's 2026 with every feature in use and a few problems planted for testing, described in `examples/DEMO.md`. `examples/make-demo.js` remakes it for any date.
+
 ## 1.0.0 (2026-10-27): first public release
 
 **New**
