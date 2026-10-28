@@ -114,6 +114,10 @@
     U.animateIn(m, 'enter');
   });
 
+  // a tab left open past a month end: missed bills are logged when you come back to it, or within 10 minutes (once a day at most)
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') RecurringUI.autoLog(); });
+  setInterval(function () { if (document.visibilityState !== 'hidden') RecurringUI.autoLog(); }, 10 * 60 * 1000);
+
   DB.setTxHook(function (list) { Hist.applyAll(App.txs, list); });
   DB.open().then(UI.reload).then(function () { App.hasLocalBudget = !!App.cfg; DB.persist(); return Promise.all([Safety.loadHandle(), Share.load()]); }).then(function () { return Safety.integrity(); }).then(function () {
     var r = parseHash(); if (r.route === 'transactions') Tx.setFilterFromHash(r.q);

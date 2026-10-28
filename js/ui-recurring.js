@@ -145,6 +145,9 @@ var RecurringUI = (function () {
     o = o || {};
     if (App.readOnly || !App.cfg) return Promise.resolve('');
     var today = U.today(); if (!o.force && ranOn === today) return Promise.resolve(''); ranOn = today;
+    return UI.reload().then(function () { return App.cfg ? logNow(o, today) : ''; });   // fresh from storage, so another open tab's logged lines are seen
+  }
+  function logNow(o, today) {
     var first = !App.cfg.autoLogFrom; if (first) App.cfg.autoLogFrom = today.slice(0, 7);   // nothing from before this month is logged
     var r = Recurring.autoLog(App.cfg, App.txs, today, new Date().toISOString());
     if (!r.add.length && !r.drop.length) return (first ? DB.saveConfig(App.cfg, true) : Promise.resolve()).then(function () { return ''; });

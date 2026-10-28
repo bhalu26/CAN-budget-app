@@ -64,6 +64,7 @@ css/  js/         the app's code: plain JavaScript, no build step, no dependenci
 examples/         a starter budget seed, and a demo budget for 2026 (see examples/DEMO.md)
 USER-GUIDE.md     how to use each part of the app
 CHANGELOG.md      what changed in each version
+LICENSE           MIT
 ```
 
 ## Versions
@@ -75,3 +76,7 @@ Versions follow [Semantic Versioning](https://semver.org): **major.minor.patch**
 - **Patch:** fixes only.
 
 1.0.0 is the first public release. The private builds before it are listed as 0.1 to 0.23 in the [changelog](CHANGELOG.md).
+
+## License
+
+[MIT](LICENSE): free to use, change and share, with no warranty.

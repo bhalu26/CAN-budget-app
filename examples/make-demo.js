@@ -247,9 +247,9 @@ Object.keys(OPEN).forEach(id => {
     a.balances = Accounts.setBalance(a, upto, debt ? -flow + OPEN[id] : OPEN[id] + flow, 'import', 'batch-' + id.slice(5) + '-' + ym);
   });
 });
-// accounts you never import: one balance typed in ("Update balance"); a second one would be checked against lines they do not have
-ACCT['acct-tfsa'].balances = [{ date: '2026-01-02', amount: 21400, source: 'manual' }];
-ACCT['acct-usd'].balances = [{ date: '2026-01-02', amount: 1850, source: 'manual' }];
+// accounts you never import: balances typed in now and then ("Update balance")
+ACCT['acct-tfsa'].balances = [['2026-01-02', 21400], ['2026-03-31', 22150], ['2026-06-30', 23920], ['2026-09-30', 24610]].filter(b => b[0] <= END).map(b => ({ date: b[0], amount: b[1], source: 'manual' }));
+ACCT['acct-usd'].balances = [['2026-01-02', 1850], ['2026-06-30', 2040]].filter(b => b[0] <= END).map(b => ({ date: b[0], amount: b[1], source: 'manual' }));
 
 /* ---------- imports, as Settings > Backup lists them ---------- */
 const byBatch = {}; txs.forEach(t => { if (t.batchId) (byBatch[t.batchId] = byBatch[t.batchId] || []).push(t); });

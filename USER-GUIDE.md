@@ -64,6 +64,7 @@ Settings › Bills & subscriptions (`G B`).
 - **Home › Coming up** shows what's paid, late, due, or paid a different amount. **Safe to spend** is what's left to spend minus bills still due this month.
 - **Logged for you:** if a bill or paycheque has nothing recorded by the end of its month, the app adds the line, marked "Logged automatically", with Undo:
   - It waits out the bill's few days of leeway, so a bill due on the 30th and paid on the 2nd isn't logged.
+  - A tab left open over the month end catches up when you come back to it, or within 10 minutes.
   - A later import of the real payment takes the logged line out again.
   - A logged line you edit is kept as yours; one you delete stays deleted.
   - An amount that varies is logged at its usual amount. A bill without a category waits in Review.
@@ -97,6 +98,8 @@ One page (`G D`) listing what could make your numbers wrong:
 - months with nothing imported
 
 Each item says why it was flagged and what is at stake, with a fix or "ignore" and Undo. Nothing changes until you click.
+
+Balances you type in for an account you never import (a TFSA, say) aren't checked against lines, since there are none to check.
 
 ## Files, backups and sharing
 

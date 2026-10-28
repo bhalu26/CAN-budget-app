@@ -976,6 +976,21 @@
       "date": "2026-01-02",
       "amount": 21400,
       "source": "manual"
+     },
+     {
+      "date": "2026-03-31",
+      "amount": 22150,
+      "source": "manual"
+     },
+     {
+      "date": "2026-06-30",
+      "amount": 23920,
+      "source": "manual"
+     },
+     {
+      "date": "2026-09-30",
+      "amount": 24610,
+      "source": "manual"
      }
     ]
    },
@@ -995,6 +1010,11 @@
      {
       "date": "2026-01-02",
       "amount": 1850,
+      "source": "manual"
+     },
+     {
+      "date": "2026-06-30",
+      "amount": 2040,
       "source": "manual"
      }
     ]

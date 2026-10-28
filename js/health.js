@@ -51,12 +51,15 @@ var Health = (function () {
   }
 
   /* ---------- recorded balances against transactions ----------
-     Between two balances, the change should equal the account's lines after the first up to and including the second's date. */
+     Between two balances, the change should equal the account's lines after the first up to and including the second's date.
+     Not checked: an account with no lines at all (one you only update by hand). An account with lines is always checked,
+     even with nothing between two balances: a statement may be missing. */
   function balanceCheck(cfg, txs) {
     var out = [];
     (cfg.accounts || []).forEach(function (a) {
       if (a.closed) return;
       var bs = (a.balances || []).slice().sort(function (x, y) { return x.date < y.date ? -1 : 1; }), debt = Accounts.isDebt(a);
+      if (!txs.some(function (t) { return t.accountId === a.id && t.direction; })) return;   // an account you only update by hand (a TFSA): no lines to check its balances against
       for (var i = 1; i < bs.length; i++) {
         var b1 = bs[i - 1], b2 = bs[i], flow = 0, n = 0;
         txs.forEach(function (t) {

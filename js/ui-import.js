@@ -170,6 +170,7 @@ var Importer = (function () {
       f.done = { rows: chosen.length, tx: list.length, review: App.txs.filter(function (t) { return t.batchId === batchId && t.needsTag; }).length, batchId: batchId, pairs: pairs };
       return RecurringUI.autoLog({ force: true, quiet: true });   // a real payment replaces a line logged for it
     }).then(function (logged) {
+      f.done.logged = logged || '';   // "Import all files" adds these to its own message
       analyse(f);
       if (!quiet) { App.render(); UI.toast('Imported ' + chosen.length + ' of ' + f.items.length + ' rows from ' + f.name + '.' + (logged ? ' ' + logged : ''), function () { undo(batchId); }); }
       return chosen.length;
@@ -238,7 +239,10 @@ var Importer = (function () {
         pending.length > 1 ? h('button', { type: 'button', class: 'btn primary', disabled: noAcct.length > 0 || !rowsAll, title: noAcct.length ? 'Still needs an account: ' + noAcct.map(function (f) { return f.name; }).join(', ') : null, onclick: function () {
           var total = 0, review = 0, names = pending.map(function (f) { return f.name; }), chain = Promise.resolve();
           pending.forEach(function (f) { chain = chain.then(function () { return doImport(f, 'all', true).then(function (n) { total += n; review += f.done ? f.done.review : 0; }); }); });
-          chain.then(function () { allPrompt = { names: names, rows: total, review: review }; App.render(); UI.toast('Imported ' + total + ' rows from ' + pending.length + ' files.'); });
+          chain.then(function () {
+            var logged = pending.map(function (f) { return f.done ? f.done.logged : ''; }).filter(Boolean);   // logged lines taken out (or logged) along the way
+            allPrompt = { names: names, rows: total, review: review }; App.render(); UI.toast('Imported ' + total + ' rows from ' + pending.length + ' files.' + (logged.length ? ' ' + logged.join(' ') : ''));
+          });
         } }, 'Import all files (' + rowsAll + ' rows)') : null));
       if (pending.length > 1 && noAcct.length) main.appendChild(h('div', { class: 'small amber' }, noAcct.length + ' file' + (noAcct.length === 1 ? ' still needs' : 's still need') + ' an account: ' + noAcct.map(function (f) { return f.name; }).join(', ') + '.'));
     }

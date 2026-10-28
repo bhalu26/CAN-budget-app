@@ -211,7 +211,8 @@ var Recurring = (function () {
         }
         if (a || done[s.date]) return;
         var cat = it.kind === 'income' ? (it.categoryId || '_income') : (it.categoryId || null);
-        out.add.push({ id: U.uid(), source: 'manual', createdAt: nowIso, updatedAt: nowIso, flags: ['Logged automatically'], amount: U.round2(it.amount), expr: null,
+        out.add.push({ id: 'auto-' + it.id + '-' + s.date, source: 'manual',   // one id per bill and date: two tabs logging at once write the same line, never two
+          createdAt: nowIso, updatedAt: nowIso, flags: ['Logged automatically'], amount: U.round2(it.amount), expr: null,
           categoryId: cat, type: cat ? M.typeFor(cfg, cat) : 'pending', date: s.date, desc: it.name, note: 'Logged automatically: ' + it.name + ' was not recorded by the end of the month.',
           tripId: null, needsTag: !cat, reviewReason: cat ? undefined : 'Logged automatically; choose a category', recurringId: it.id, auto: { item: it.id, date: s.date } });
         (out.logged[it.id] = out.logged[it.id] || []).push(s.date);

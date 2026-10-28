@@ -5,7 +5,14 @@ Versions follow [Semantic Versioning](https://semver.org). Older budget files ke
 
 ## Unreleased
 
+**Fixed**
+- Data health no longer says "balances and transactions do not add up" for an account you only update by hand (a TFSA, say): an account with no transactions has nothing to check its balances against. Accounts you import are still checked, even when nothing came in between two balances, since a statement may be missing.
+- A tab left open past the end of a month now logs missed bills by itself (when you come back to it, or within 10 minutes), instead of waiting for you to change screens.
+- Two open tabs can no longer log the same missed bill twice.
+- "Import all files" now says when a logged line was taken out because its real payment came in.
+
 **New**
+- MIT licence.
 - A demo budget (`examples/demo-budget-2026.json`): a made-up household's 2026 with every feature in use and a few problems planted for testing, described in `examples/DEMO.md`. `examples/make-demo.js` remakes it for any date.
 
 ## 1.0.0 (2026-10-27): first public release
