@@ -39,7 +39,7 @@ You need a desktop browser: Chrome, Edge or Safari.
 |---|---|
 | **Budget** | Groups and categories with monthly or yearly limits, saving targets, left to spend, safe to spend |
 | **Transactions** | Quick add (`4.75+3.50`), split a line between categories, group bills (count only your share), trips, edit history, Undo everywhere |
-| **Import** | Any bank CSV, account detection, balance checks, duplicate protection, tagging rules that learn from you |
+| **Import** | Bank CSV files and PDF statements (read on your computer, checked against the statement's balances), account detection, duplicate protection, tagging rules that learn from you |
 | **Bills & subscriptions** | Found from your history, what's due and late, cost per year, and bills not recorded by month end are logged for you |
 | **Insights** | Year by category, month grid, income / spent / saved, top merchants, recurring costs |
 | **Planning** | Big-expense funds (set aside monthly), accounts and net worth |
@@ -60,7 +60,8 @@ You need a desktop browser: Chrome, Edge or Safari.
 
 ```
 index.html        the app (open this)
-css/  js/         the app's code: plain JavaScript, no build step, no dependencies
+css/  js/         the app's code: plain JavaScript, no build step
+vendor/pdfjs/     Mozilla pdf.js 3.11.174 (Apache 2.0), used only to read PDF statements
 examples/         a starter budget seed, and a demo budget for 2026 (see examples/DEMO.md)
 USER-GUIDE.md     how to use each part of the app
 CHANGELOG.md      what changed in each version
@@ -80,3 +81,5 @@ Versions follow [Semantic Versioning](https://semver.org): **major.minor.patch**
 ## License
 
 [MIT](LICENSE): free to use, change and share, with no warranty.
+
+Third-party: `vendor/pdfjs/` is Mozilla pdf.js 3.11.174 under the Apache License 2.0 (`vendor/pdfjs/LICENSE`), unchanged.

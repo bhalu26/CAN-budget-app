@@ -19,13 +19,22 @@ var Importer = (function () {
   }
 
   /* ---------- reading a file ---------- */
-  function addFile(name, text) {
-    var rows = Engine.parseCSV(text.replace(/^\uFEFF/, '')).rows;
+  /* pdf: a statement read from a PDF (Statement.parse); its rows come as a table with money out negative */
+  function addFile(name, text, pdf) {
+    var rows = pdf ? Statement.toTable(pdf) : Engine.parseCSV(text.replace(/^\uFEFF/, '')).rows;
     var inf = Detect.infer(rows), L = inf.L;
     var f = { name: name, rows: rows, L: L, sig: Engine.layoutSignature(rows, L), filter: 'all', fixes: {}, dirCol: inf.dirCol, explain: inf.explain, inferred: inf.changed, complete: inf.complete, kindGuess: inf.kindGuess, balCol: inf.balCol };
+    if (pdf) {   // a statement: its own account number, bank and kind; amounts already the right way round
+      f.pdf = pdf; f.signMode = 'bank'; f.kindGuess = pdf.kind; f.sig = 'pdf|' + (pdf.numbers[0] || pdf.bank || name);
+    }
     var prof = (App.cfg.profiles || {})[f.sig];
     if (prof) { f.L.cols = Object.assign({}, prof.cols); if (prof.dirCol !== undefined) f.dirCol = prof.dirCol; if (prof.balCol !== undefined) f.balCol = prof.balCol; f.known = true; }
     f.ident = Detect.identify(rows, f.L, name);
+    if (pdf) {
+      f.ident.format = 'PDF statement'; f.ident.kind = pdf.kind;
+      if (pdf.bank) { f.ident.bank = pdf.bank; f.ident.bankFrom = 'the statement'; }
+      if (pdf.numbers.length) { f.ident.numbers = pdf.numbers.map(function (n) { return { last4: n, rows: pdf.rows.length }; }); f.ident.numbersFrom = 'the statement'; }
+    }
     var m = Detect.matchAccount(App.cfg, f.ident, f.sig);
     f.accountId = m.accountId; f.matchWhy = m.why || ''; f.suggestNew = m.suggestNew || null; f.maybeSame = m.maybeSame || null;
     if (f.suggestNew && !f.suggestNew.kind) f.suggestNew.kind = f.kindGuess || 'bank';
@@ -37,6 +46,23 @@ var Importer = (function () {
     analyse(f);
   }
 
+  var reading = 0;
+  /* a PDF statement: read on this computer (pdf.js), turned into transactions, then shown like any other file. A protected one asks for its password. */
+  function readPdf(fl) {
+    return U.readFile(fl, true).then(function (buf) {
+      var bytes = new Uint8Array(buf);
+      var use = function (d) { addFile(fl.name, null, Statement.parse(d.pages, U.today())); };
+      return PdfRead.pages(bytes.slice()).then(use, function (e) {
+        if (e.code !== 'NEED_PASSWORD') throw e;
+        return new Promise(function (ok, no) {
+          var opened = false;
+          Share.askPass({ title: 'Open a protected PDF', verb: 'Open', sub: fl.name, field: 'PDF password', intro: 'This statement is protected with a password (your bank\'s, often part of your account number or birth date). It is used on this computer only and not kept.',
+            run: function (pass) { return PdfRead.pages(bytes.slice(), pass).then(function (d) { use(d); opened = true; }); }, done: ok });
+          UI.onPanelClose(function () { if (opened) ok(); else no(Object.assign(new Error('cancelled'), { name: 'AbortError' })); });   // closed without the password: skip this file
+        });
+      });
+    });
+  }
   function acct(id) { return (App.cfg.accounts || []).filter(function (a) { return a.id === id; })[0]; }
 
   var ruleById = {}, learnIdx = null;
@@ -56,6 +82,7 @@ var Importer = (function () {
       mode = other;
     }
     f.signUsed = mode;
+    if (f.pdf && !f.balance && f.pdf.closing !== null && f.pdf.period) f.balance = { date: f.pdf.period.to, amount: f.pdf.kind === 'card' ? Math.abs(f.pdf.closing) : f.pdf.closing, owed: f.pdf.kind === 'card' };   // a card's new balance: what is owed
   }
   /* most spending rows read as money in ("refund?"): the file's signs are the other way round */
   function backwards(f) {
@@ -129,6 +156,16 @@ var Importer = (function () {
     best.why = 'Possible duplicate of ' + (t.desc || UI.catName(t.categoryId)) + ' ' + U.money(Math.abs(t.amount), { cents: true }) + ' on ' + U.shortDate(t.date) +
       (t.source === 'manual' ? ' (typed by hand)' : t.source === 'excel' ? ' (Excel history)' : t.auto ? ' (logged for you)' : ' (' + (UI.acctName(t) || 'another import') + ')');
     return best;
+  }
+  /* What the statement itself says, and whether the rows add up to it */
+  function statementNote(st) {
+    var m = function (v) { return U.money(Math.abs(v), { cents: true }); }, c = st.check, card = st.kind === 'card';
+    var per = st.period ? U.shortDate(st.period.from) + ' ' + st.period.from.slice(0, 4) + ' to ' + U.shortDate(st.period.to) + ' ' + st.period.to.slice(0, 4) : 'period not found';
+    var line1 = h('div', null, h('strong', null, 'PDF statement'), ' · ' + (st.bank || 'bank not named') + (st.numbers.length ? ' · ' + (card ? 'card' : 'account') + ' ending ' + st.numbers.join(', ') : '') + ' · ' + per + ' · ' + st.rows.length + ' transaction' + (st.rows.length === 1 ? '' : 's'));
+    var line2 = !c ? h('div', { class: 'amber strong' }, '⚠ The statement\'s opening and closing balances were not found, so the rows could not be checked against them. Check them against the PDF.')
+      : c.ok ? h('div', { class: 'ok strong' }, '✓ The rows add up: ' + (card ? 'previous balance ' : 'opening balance ') + m(c.opening) + (card ? ' + purchases − payments and credits = new balance ' : ' + deposits − withdrawals = closing balance ') + m(c.closing) + '.')
+      : h('div', { class: 'red strong', role: 'alert' }, '⚠ The rows do not add up to the statement: they come to ' + m(c.expected) + ', but the statement says ' + m(c.closing) + ' (' + (c.diff > 0 ? '' : '−') + m(c.diff) + ' ' + (card ? 'owed' : '') + ' unexplained). A line may have been missed or read wrongly: compare with the PDF before importing.');
+    return h('div', { class: 'notice stack-sm pdf-note', role: 'status' }, line1, line2, st.notes.length ? h('div', { class: 'small muted' }, st.notes.join(' ')) : null);
   }
   /* Under a possible duplicate (or one you decided on): what it seems to repeat, and the three answers */
   function dupChoice(f, it) {
@@ -205,7 +242,7 @@ var Importer = (function () {
       var type = catId ? M.typeFor(App.cfg, catId) : (amountRaw > 0 ? 'pending' : 'expense');
       var amount = type === 'income' ? amountRaw : (type === 'transfer' || type === 'exclude' || type === 'pending') ? Math.abs(amountRaw) : -amountRaw;
       return { id: U.uid(), date: it.date, amount: U.round2(amount), type: type, categoryId: catId || null, desc: it.desc, note: '', account: a ? a.name : '', accountId: f.accountId,
-        direction: amountRaw < 0 ? 'out' : 'in', source: 'csv', batchId: batchId, file: f.name, line: it.line, fp: it.fp,
+        direction: amountRaw < 0 ? 'out' : 'in', source: 'csv', batchId: batchId, file: f.name, line: it.line, fp: it.fp, page: f.pdf ? (f.pdf.rows[it.line - 2] || {}).page : undefined,
         needsTag: !it.touched && (it.review || !catId), reviewReason: it.touched ? '' : it.reasons.filter(function (r) { return !/^Before|^Already/.test(r); }).join('; '),
         conf: it.touched ? 'sure' : (it.conf || 'guess'), tagWhy: it.touched ? 'You chose this when importing' : (it.why || ''),
         flags: it.flags.concat(extraFlag ? [extraFlag] : []), createdAt: stamp, fundId: it.fundId && type === 'expense' && !extraFlag ? it.fundId : undefined };
@@ -276,18 +313,20 @@ var Importer = (function () {
     Safety.guard('import', files.some(function (f) { return !f.done; }));
     if (recentOn === null) recentOn = pref('recent');
     main.appendChild(h('header', { class: 'stack-sm' }, h('h1', null, 'Import bank files'),
-      h('div', { class: 'muted' }, 'Choose your bank\'s CSV files. You see every row before anything is saved, and every import can be undone.')));
+      h('div', { class: 'muted' }, 'Choose your bank\'s CSV files or PDF statements. You see every row before anything is saved, and every import can be undone. PDFs are read on this computer.')));
     var hasRules = App.cfg.ruleSets && (App.cfg.ruleSets.general || App.cfg.ruleSets.personal);
     if (!hasRules) main.appendChild(h('div', { class: 'toast warn' }, h('span', null, 'No tagging rules loaded yet, so every row will need a category. Load rules-general.csv and rules-personal.csv in Settings.'), h('a', { class: 'btn', href: '#/settings' }, 'Go to Settings')));
-    var input = h('input', { id: 'csvf', type: 'file', accept: '.csv,text/csv', multiple: true, class: 'input', style: { paddingTop: '8px' }, onchange: function (e) {
-      var list = Array.prototype.slice.call(e.target.files);
-      Promise.all(list.map(function (fl) { return U.readFile(fl).then(function (t) { return { name: fl.name, text: t }; }); })).then(function (rs) {
-        allPrompt = null;
-        rs.forEach(function (r) { try { addFile(r.name, r.text); } catch (err) { UI.toast('Could not read ' + r.name + ': ' + err.message); } });
-        cur = files.length - 1; App.render();
+    var input = h('input', { id: 'csvf', type: 'file', accept: '.csv,.pdf,text/csv,application/pdf', multiple: true, class: 'input', style: { paddingTop: '8px' }, onchange: function (e) {
+      var list = Array.prototype.slice.call(e.target.files), chain = Promise.resolve();
+      allPrompt = null; reading = list.length; App.render();
+      list.forEach(function (fl) {
+        chain = chain.then(function () { return /\.pdf$/i.test(fl.name) || fl.type === 'application/pdf' ? readPdf(fl) : U.readFile(fl).then(function (t) { addFile(fl.name, t); }); })
+          .catch(function (err) { if (err && err.name === 'AbortError') return; UI.toast('Could not read ' + fl.name + ': ' + err.message); });
       });
+      chain.then(function () { reading = 0; cur = files.length - 1; App.render(); });
     } });
-    main.appendChild(h('div', { class: 'card pad stack-sm' }, h('div', { class: 'field', style: { maxWidth: '460px' } }, h('label', { for: 'csvf' }, '1. Choose one or more CSV files'), input)));
+    main.appendChild(h('div', { class: 'card pad stack-sm' }, h('div', { class: 'field', style: { maxWidth: '520px' } }, h('label', { for: 'csvf' }, '1. Choose one or more CSV files or PDF statements'), input),
+      reading ? h('div', { class: 'muted small', role: 'status' }, 'Reading ' + reading + ' file' + (reading === 1 ? '' : 's') + '…') : null));
 
     if (allPrompt) main.appendChild(h('section', { class: 'card pad stack-sm prompt', 'aria-label': 'Import finished', role: 'status' },
       h('strong', null, '✓ Imported ' + allPrompt.rows + ' rows from ' + allPrompt.names.length + ' files.'),
@@ -385,7 +424,8 @@ var Importer = (function () {
 
     // Things worth knowing, shown only when they apply
     var notes = h('div', { class: 'stack-sm' });
-    if (f.accountId) {
+    if (f.pdf) notes.appendChild(statementNote(f.pdf));
+    if (f.accountId && !f.pdf) {
       var neg = f.signUsed === 'bank', flip = function () { f.signMode = neg ? 'card' : 'bank'; analyse(f); App.render(); };
       if (f.signAuto || f.signMode) notes.appendChild(h('div', { class: 'notice row between', role: 'status' },
         h('span', null, h('strong', null, neg ? 'Money out is negative in this file' : 'Purchases are positive in this file'),
@@ -408,7 +448,7 @@ var Importer = (function () {
       var og = Health.openingGap(acct(f.accountId), rc);
       if (og) notes.appendChild(h('div', { class: 'strong amber', role: 'alert' }, '⚠ This file starts at ' + U.money(og.opening, { cents: true }) + ', but your last recorded balance was ' + U.money(og.prev.amount, { cents: true }) + ' on ' + U.shortDate(og.prev.date) + '. Lines between the two (an earlier statement?) may be missing.'));
     }
-    if (f.balance) notes.appendChild(h('div', { class: 'small muted' }, 'Closing balance ' + U.money(f.balance.amount, { cents: true }) + ' on ' + U.shortDate(f.balance.date) + ' will be saved as the account balance.'));
+    if (f.balance) notes.appendChild(h('div', { class: 'small muted' }, (f.balance.owed ? 'New balance ' + U.money(f.balance.amount, { cents: true }) + ' owed' : 'Closing balance ' + U.money(f.balance.amount, { cents: true })) + ' on ' + U.shortDate(f.balance.date) + ' will be saved as the account balance.'));
     if (!f.complete && !f.known) notes.appendChild(h('div', { class: 'strong amber' }, 'Some columns could not be worked out. Open "How this file was read" and choose them; the app remembers them for this bank.'));
     if (notes.childNodes.length) body.appendChild(notes);
 

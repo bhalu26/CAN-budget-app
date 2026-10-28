@@ -5,6 +5,14 @@ Versions follow [Semantic Versioning](https://semver.org). Older budget files ke
 
 ## Unreleased
 
+**New**
+- **PDF statements.** Choose a bank or credit-card statement PDF on the Import screen. It is read on your computer (bundled pdf.js 3.11.174, Apache 2.0; nothing is sent anywhere) and turned into transactions:
+  - dates in many forms, with the year taken from the statement period (December/January statements too);
+  - descriptions over two lines, separate withdrawal and deposit columns, credits marked CR or in brackets;
+  - rows that share a date printed once per day.
+- **Checked against the statement itself.** The rows must add up from the opening (or previous) balance to the closing (or new) balance. The screen shows "✓ The rows add up", or exactly how far off they are.
+- PDF rows go through the same review as CSV files: the account is matched by the card or account number in the statement, a card's new balance is saved as what is owed, possible duplicates are held back, and Undo works. Each line remembers its page. A scanned PDF (no text) or a file that is not a PDF says so; a password-protected PDF asks for its password.
+
 **Improved**
 - **Duplicates are caught more reliably.** Names are compared by their words ("Netflix" and "NETFLIX.COM VANCOUVER" are the same merchant), a line you typed is matched with the bank's even when the amount differs a little (a tip, rounding) or it posts a few days later, and the Excel history is checked too. Not duplicates: a purchase and its refund, two people's payments that share words, two charges the bank listed separately.
 - **Recurring bills recognise their payments in more forms**: bank text that includes the bill's name ("APPLE.COM/BILL TORONTO" for an Apple bill), the bill's own part of a combined line ("Streaming 18.99 + Music 11.99" pays $18.99 toward a Streaming bill), and, for a fixed bill, a line in its category with its exact amount. A partial name match far from the bill's amount does not count.

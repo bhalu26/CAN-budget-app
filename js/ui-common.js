@@ -59,8 +59,12 @@ var UI = (function () {
 
   /* Side panel with focus kept inside and returned afterwards. */
   var lastFocus = null, keyHandler = null;
+  var closeHooks = [];
+  /* run fn once when the panel now open closes (by any route: a button, Escape, the backdrop) */
+  function onPanelClose(fn) { closeHooks.push(fn); }
   function openPanel(build, opts) {
     opts = opts || {};
+    closeHooks = [];
     lastFocus = document.activeElement;
     var layer = U.clear(document.getElementById('layer'));
     var panel = h('div', { class: 'panel' + (opts.wide ? ' wide' : ''), role: 'dialog', 'aria-modal': 'true', 'aria-label': opts.label || 'Panel', tabindex: '-1' });
@@ -85,6 +89,8 @@ var UI = (function () {
     return panel;
   }
   function closePanel() {
+    var hooks = closeHooks; closeHooks = [];
+    hooks.forEach(function (fn) { try { fn(); } catch (e) {} });
     Safety.guard('add', false);
     if (keyHandler) { document.removeEventListener('keydown', keyHandler); keyHandler = null; }
     var layer = document.getElementById('layer'), wrap = layer.firstChild;
@@ -401,6 +407,6 @@ var UI = (function () {
     return b;
   }
 
-  return { confLabel: confLabel, announce: announce, reload: reload, saveCfg: saveCfg, nav: nav, closeMenu: closeMenu, openPanel: openPanel, closePanel: closePanel, panelHead: panelHead, categorySelect: categorySelect,
+  return { confLabel: confLabel, announce: announce, reload: reload, saveCfg: saveCfg, nav: nav, closeMenu: closeMenu, openPanel: openPanel, closePanel: closePanel, onPanelClose: onPanelClose, panelHead: panelHead, categorySelect: categorySelect,
     acctName: acctName, catName: catName, histSay: histSay, histStamp: stamp, expensePanel: expensePanel, toast: toast, showToast: showToast, dropToast: dropToast, statusClass: statusClass, bar: bar, travelCat: travelCat };
 })();

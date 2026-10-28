@@ -180,7 +180,7 @@ var Share = (function () {
         var inp = h('input', { id: 'pp', class: 'input', type: st.show ? 'text' : 'password', autocomplete: 'off', spellcheck: 'false', value: st.pass, autofocus: true,
           oninput: function (e) { st.pass = e.target.value; if (st.msg) { st.msg = ''; msg.textContent = ''; } }, onkeydown: function (e) { if (e.key === 'Enter') go(); } });
         var msg = h('div', { class: 'small red', role: 'alert' }, st.msg);
-        p.appendChild(h('div', { class: 'field' }, h('label', { for: 'pp' }, 'Passphrase'), inp, msg,
+        p.appendChild(h('div', { class: 'field' }, h('label', { for: 'pp' }, o.field || 'Passphrase'), inp, msg,
           h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: st.show, onchange: function (e) { st.show = e.target.checked; draw(); } }), h('span', null, 'Show what I type'))));
         p.appendChild(h('button', { type: 'button', class: 'btn primary', disabled: st.busy, onclick: go }, st.busy ? 'Unlocking…' : o.verb));
         var f = p.querySelector('#pp'); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); }
