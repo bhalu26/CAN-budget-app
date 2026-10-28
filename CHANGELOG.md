@@ -5,6 +5,15 @@ Versions follow [Semantic Versioning](https://semver.org). Older budget files ke
 
 ## Unreleased
 
+**Improved**
+- **Duplicates are caught more reliably.** Names are compared by their words ("Netflix" and "NETFLIX.COM VANCOUVER" are the same merchant), a line you typed is matched with the bank's even when the amount differs a little (a tip, rounding) or it posts a few days later, and the Excel history is checked too. Not duplicates: a purchase and its refund, two people's payments that share words, two charges the bank listed separately.
+- **Recurring bills recognise their payments in more forms**: bank text that includes the bill's name ("APPLE.COM/BILL TORONTO" for an Apple bill), the bill's own part of a combined line ("Streaming 18.99 + Music 11.99" pays $18.99 toward a Streaming bill), and, for a fixed bill, a line in its category with its exact amount. A partial name match far from the bill's amount does not count.
+- **Import:**
+  - A card file that lists purchases as negative amounts is noticed and read that way, with a note and a "Read amounts the other way" button. The choice is remembered for that bank's format.
+  - Rows that may repeat a line already in the app are held back as "Possible duplicates", each with three answers: leave it out, import it, or replace your typed line with the bank's (Undo brings yours back).
+  - The import buttons stay in view while you scroll a long file.
+- Transfers between your accounts are matched up to 5 days apart (pre-authorized payments can take a few business days).
+
 **Fixed**
 - Data health no longer says "balances and transactions do not add up" for an account you only update by hand (a TFSA, say): an account with no transactions has nothing to check its balances against. Accounts you import are still checked, even when nothing came in between two balances, since a statement may be missing.
 - A tab left open past the end of a month now logs missed bills by itself (when you come back to it, or within 10 minutes), instead of waiting for you to change screens.

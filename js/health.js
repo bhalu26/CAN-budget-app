@@ -74,46 +74,30 @@ var Health = (function () {
   }
 
   /* ---------- duplicates ---------- */
-  function sameMerchant(a, b) {
-    var ka = M.merchantKey(a.desc), kb = M.merchantKey(b.desc);
-    if (!ka || !kb) return !!a.categoryId && a.categoryId === b.categoryId;   // a hand-entered line with no name: same category will do
-    if (ka === kb) return true;
-    var s = ka.length <= kb.length ? ka : kb, l = s === ka ? kb : ka;
-    return s.length >= 4 && l.indexOf(s) === 0;
-  }
   function duplicates(txs) {
-    var buckets = {}, pairs = [];
-    txs.forEach(function (t) {
-      if (!validDate(t.date) || !t.amount || t.type === 'exclude') return;
-      (buckets[cents(t.amount) + (signedOut(t) ? 'o' : 'i')] = buckets[cents(t.amount) + (signedOut(t) ? 'o' : 'i')] || []).push(t);
-    });
-    Object.keys(buckets).forEach(function (k) {
-      var b = buckets[k].sort(function (x, y) { return x.date < y.date ? -1 : x.date > y.date ? 1 : 0; });
-      for (var i = 0; i < b.length; i++) for (var j = i + 1; j < b.length; j++) {
-        var x = b[i], y = b[j], gap = day(y.date) - day(x.date);
-        if (gap > 3) break;
-        if (x.linkId && x.linkId === y.linkId) continue;
-        if (x.splitGroup && x.splitGroup === y.splitGroup) continue;   // parts of one split often share an amount
-        if (!sameMerchant(x, y)) continue;
-        var sameFile = x.batchId && x.batchId === y.batchId, manual = x.source === 'manual' || y.source === 'manual';
-        var level, why;
-        if (sameFile) { if (gap > 0) continue; level = 'low'; why = 'Repeated in the same file'; }
-        else if (gap === 0) { level = 'high'; why = manual ? 'Typed by hand and also imported' : 'In two different imports'; }
-        else if (gap <= (manual ? 3 : 2)) { level = 'medium'; why = manual ? 'Typed by hand, then imported a day or two later' : 'Same amount and merchant a day or two apart'; }
-        else continue;
-        pairs.push({ a: x, b: y, level: level, why: why });
-      }
-    });
-    // join pairs that share a line into one group
-    var parent = {}; function find(i) { while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; } return i; }
-    pairs.forEach(function (p) { [p.a.id, p.b.id].forEach(function (i) { if (parent[i] === undefined) parent[i] = i; }); parent[find(p.a.id)] = find(p.b.id); });
-    var groups = {}, rank = { high: 3, medium: 2, low: 1 };
+    /* every pair within a week, judged by Match.dup (same merchant by words, same amount to the cent or nearly, typed vs imported) */
+    var pairs = [], list = txs.filter(function (t) { return validDate(t.date) && t.amount && t.type !== 'exclude'; })
+      .sort(function (x, y) { return x.date < y.date ? -1 : x.date > y.date ? 1 : 0; });
+    for (var i = 0; i < list.length; i++) for (var j = i + 1; j < list.length; j++) {
+      if (day(list[j].date) - day(list[i].date) > 7) break;
+      var r = Match.dup(list[i], list[j]);
+      if (r) pairs.push({ a: list[i], b: list[j], level: r.level, why: r.why });
+    }
+    // each line pairs with one other at most: the strongest match first (level, then the exact amount, then the nearest date),
+    // so one typed coffee is not chained to every coffee bought that week
+    // (exact copies flagged high still join one group: a line imported three times is one group of three)
+    var rank = { high: 3, medium: 2, low: 1 }, groupOf = {}, out = [];
+    pairs.forEach(function (p) { p.exact = Match.amount(p.a.amount, p.b.amount) === 'exact'; p.gap = Math.abs(day(p.a.date) - day(p.b.date)); });
+    pairs.sort(function (p, q) { return rank[q.level] - rank[p.level] || (q.exact - p.exact) || p.gap - q.gap; });
     pairs.forEach(function (p) {
-      var g = groups[find(p.a.id)] || (groups[find(p.a.id)] = { ids: {}, level: 'low', why: '' });
-      g.ids[p.a.id] = 1; g.ids[p.b.id] = 1;
-      if (rank[p.level] > rank[g.level] || !g.why) { g.level = p.level; g.why = p.why; }
+      var ga = groupOf[p.a.id], gb = groupOf[p.b.id];
+      if (!ga && !gb) { var g = { ids: [p.a.id, p.b.id], level: p.level, why: p.why }; groupOf[p.a.id] = groupOf[p.b.id] = g; out.push(g); return; }
+      if (ga && gb || !(p.exact && p.level === 'high')) return;
+      var grp = ga || gb, add = ga ? p.b.id : p.a.id;
+      if (grp.level === 'high') { grp.ids.push(add); groupOf[add] = grp; }
     });
-    return Object.keys(groups).map(function (k) { var g = groups[k]; return { ids: Object.keys(g.ids).sort(), level: g.level, why: g.why }; });
+    out.forEach(function (g) { g.ids.sort(); });
+    return out;
   }
 
   /* ---------- everything together ---------- */

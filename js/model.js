@@ -242,7 +242,7 @@ var M = (function () {
       var best = null;
       ins.forEach(function (i) {
         if (used[i.id] || i.accountId === o.accountId || Math.abs(Math.abs(i.amount) - Math.abs(o.amount)) > 0.005) return;
-        var d = days(i.date, o.date); if (d > 3) return;
+        var d = days(i.date, o.date); if (d > 5) return;   // a pre-authorized payment can take a few business days to arrive
         if (!best || d < best.d) best = { t: i, d: d };
       });
       if (!best) return;

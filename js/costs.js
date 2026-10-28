@@ -58,7 +58,7 @@ var Costs = (function () {
   /* Did the amount move? Looks at the payments matched to this item. -> null or { from, to, since, perYear } (perYear = what the change costs over a year) */
   function priceChange(it, txs) {
     if (it.amountMode === 'varies') return null;   // a bill that moves every month has no "rise"
-    var ms = Recurring.matches(it, txs).map(function (t) { return { d: t.date, a: Math.abs(t.amount) }; });
+    var ms = Recurring.matches(it, txs).map(function (t) { return { d: t.date, a: Recurring.paid(it, t) }; });
     if (ms.length < 2) return null;
     var now = ms[ms.length - 1].a, tol = Math.max(0.5, now * 0.02), i = ms.length - 1;
     while (i > 0 && Math.abs(ms[i - 1].a - now) <= tol) i--;

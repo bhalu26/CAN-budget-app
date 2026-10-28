@@ -544,3 +544,10 @@ details.more[open] > summary::before { content: '▾'; content: '▾' / ''; }
 .rc-sum { text-align: right; }
 .rc-act { justify-content: flex-end; flex-wrap: nowrap; }
 @media (max-width: 760px) { .rc-line { grid-template-columns: minmax(0, 1fr) auto; } .rc-sum { text-align: right; } .rc-when { grid-column: 1 / 2; } .rc-act { grid-column: 1 / -1; justify-content: flex-start; flex-wrap: wrap; } }
+
+/* Import: the import buttons stay in view under a long list of rows; a possible duplicate shows its three answers */
+.import-bar { position: sticky; bottom: 0; z-index: 2; background: var(--surface); border-top: 1px solid var(--line); padding: 12px 0 8px; margin-top: 4px; }
+.dup-choice { padding: 8px 12px; border-radius: var(--r-sm); background: var(--amber-soft); color: var(--text); gap: 8px 16px; }
+.dup-row td { border-top: 0; padding-top: 0; }
+.dup-choice .small-btn { min-height: 32px; padding: 4px 10px; font-size: 13px; }
+.dup-choice .small-btn[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }

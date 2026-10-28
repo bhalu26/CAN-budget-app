@@ -16,7 +16,7 @@ const END = TODAY > '2026-12-31' ? '2026-12-31' : TODAY;   // the demo covers 20
 const ctx = { console, Date, Math, JSON, crypto: globalThis.crypto, TextEncoder, TextDecoder,
   document: { createElement: () => ({}), createTextNode: () => ({}) }, Node: function () {}, navigator: {}, window: {} };
 vm.createContext(ctx);
-['util.js', 'model.js', 'engine.js', 'recurring.js', 'funds.js', 'accounts.js', 'split.js', 'group.js', 'trips.js', 'history.js', 'reviewed.js', 'learn.js']
+['util.js', 'model.js', 'engine.js', 'match.js', 'recurring.js', 'funds.js', 'accounts.js', 'split.js', 'group.js', 'trips.js', 'history.js', 'reviewed.js', 'learn.js']
   .forEach(f => vm.runInContext(fs.readFileSync(path.join(__dirname, '../js', f), 'utf8'), ctx, { filename: f }));
 const { U, M, Engine, Funds, Accounts, Split, Group, Hist, Reviewed, Learn } = vm.runInContext('({ U, M, Engine, Funds, Accounts, Split, Group, Hist, Reviewed, Learn })', ctx);
 let idn = 0; U.uid = () => 'demo' + (++idn).toString(36).padStart(5, '0');   // the same ids every run

@@ -111,20 +111,46 @@ var Recurring = (function () {
   }
 
   /* ---------- matching and status ---------- */
+  /* "Streaming 18.99 + Music 11.99": several payments typed as one line (the Excel history does this) */
+  function combined(desc) { return /\S\s*\+\s*\S/.test(desc || ''); }
+  /* this bill's share of a combined line (27 for Netflix above), or null when no part names it with an amount */
+  function partOf(item, t) {
+    if (!combined(t.desc)) return null;
+    var hit = null;
+    String(t.desc).split('+').forEach(function (seg) {
+      var m = /^(.*?)[\s$]*(\d+(?:\.\d{1,2})?)\s*$/.exec(seg.trim());
+      if (hit === null && m && m[1] && Match.fits(item.key, m[1], +m[2], item.amount)) hit = U.round2(+m[2]);
+    });
+    return hit;
+  }
+  /* what a matched line paid toward the bill */
+  function paid(item, t) { var p = partOf(item, t); return p !== null ? p : Math.abs(t.amount); }
   function matches(item, txs) {
-    return txs.filter(function (t) { return !t.notRecurring && ((item.id && t.recurringId === item.id) || (t.desc && kindOf(t) === item.kind && M.merchantKey(t.desc) === item.key)); })   // a line logged for it counts too
+    // a line logged for it counts too; bank text is matched by its words ("NETFLIX" pays by "NETFLIX.COM VANCOUVER", "LANDLORD RENT" by "LANDLORD");
+    // a combined line ("Streaming 18.99 + Music 11.99") only when it names this bill's part with an amount
+    return txs.filter(function (t) { return !t.notRecurring && ((item.id && t.recurringId === item.id) || (t.desc && kindOf(t) === item.kind && (combined(t.desc) ? partOf(item, t) !== null : Match.fits(item.key, t.desc, t.amount, item.amount)))); })
       .sort(function (a, b) { return a.date < b.date ? -1 : 1; });
   }
-  /* Expected dates between from and to, each matched to at most one transaction (closest within the tolerance). */
+  /* Lines in the bill's category with its amount (a fixed bill), for dates its name finds nothing: the Excel history says "Rent", the bank "LANDLORD". */
+  function byCategory(item, txs) {
+    if (item.amountMode === 'varies' || !item.categoryId || !(item.amount > 0)) return [];
+    return txs.filter(function (t) { return !t.notRecurring && t.categoryId === item.categoryId && kindOf(t) === item.kind && Match.amount(t.amount, item.amount) === 'exact'; });
+  }
+  /* Expected dates between from and to, each matched to at most one transaction (closest within the tolerance):
+     by name first, then, for a fixed bill, by its category and exact amount. */
   function status(item, txs, from, to, today) {
     var c = BY_ID[item.cadence]; if (!c) return [];
-    var tol = c.tol, cand = matches(item, txs), used = {};
+    var tol = c.tol, cand = matches(item, txs), extra = null, used = {};
     return schedule(item, from, to).map(function (d) {
       var best = null;
       cand.forEach(function (t) { var g = Math.abs(gap(d, t.date)); if (g <= tol && !used[t.id] && (!best || g < best.g)) best = { t: t, g: g }; });
+      if (!best) {
+        extra = extra || byCategory(item, txs);
+        extra.forEach(function (t) { var g = Math.abs(gap(d, t.date)); if (g <= tol && !used[t.id] && (!best || g < best.g)) best = { t: t, g: g }; });
+      }
       if (best) {
         used[best.t.id] = 1;
-        var amt = Math.abs(best.t.amount), diff = Math.abs(amt - item.amount) > Math.max(1, item.amount * 0.02);   // a fixed bill that moved by more than 2% (a $100 rent rise is 4%)
+        var amt = paid(item, best.t), diff = Math.abs(amt - item.amount) > Math.max(1, item.amount * 0.02);   // a fixed bill that moved by more than 2% (a $100 rent rise is 4%)
         return { date: d, state: item.amountMode === 'fixed' && diff ? 'changed' : 'paid', amount: amt, tx: best.t };
       }
       return { date: d, state: gap(d, today) > tol ? 'late' : 'due', amount: item.amount, tx: null };
@@ -236,5 +262,5 @@ var Recurring = (function () {
   function itemFrom(f, nowIso) {
     return { id: U.uid(), name: f.name, key: f.key, kind: f.kind, cadence: f.cadence, anchor: f.anchor, amount: f.amount, amountMode: f.amountMode, categoryId: f.categoryId, day2: f.day2, active: true, createdAt: nowIso };
   }
-  return { autoLog: autoLog, itemFrom: itemFrom, matches: matches, guess: guess, kindOf: kindOf, CADENCES: CADENCES, BY_ID: BY_ID, detect: detect, schedule: schedule, status: status, upcoming: upcoming, monthEstimate: monthEstimate, perYear: perYear, addDays: addDays, addMonths: addMonths, gap: gap, median: median };
+  return { paid: paid, partOf: partOf, autoLog: autoLog, itemFrom: itemFrom, matches: matches, guess: guess, kindOf: kindOf, CADENCES: CADENCES, BY_ID: BY_ID, detect: detect, schedule: schedule, status: status, upcoming: upcoming, monthEstimate: monthEstimate, perYear: perYear, addDays: addDays, addMonths: addMonths, gap: gap, median: median };
 })();
