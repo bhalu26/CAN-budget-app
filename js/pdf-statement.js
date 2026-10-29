@@ -56,7 +56,7 @@ var Statement = (function () {
         if (c && gap < em * 0.9) { c.text += (gap > em * 0.12 && !/\s$/.test(c.text) && !/^\s/.test(it.str) ? ' ' : '') + it.str; c.x1 = Math.max(c.x1, it.x + it.w); }
         else cells.push({ text: it.str, x0: it.x, x1: it.x + it.w });
       });
-      cells.forEach(function (c) { c.text = c.text.replace(/\s+/g, ' ').trim(); });
+      cells.forEach(function (c) { c.text = c.text.replace(/\s+/g, ' ').replace(/[\u2012\u2013\u2014\u2212](?=\s?\$?\d)/g, '-').trim(); });   // "–$1,234.56": a typographic dash before a number is a minus
       ln.cells = cells.filter(function (c) { return c.text; });
       ln.text = ln.cells.map(function (c) { return c.text; }).join('  ');
     });
@@ -70,6 +70,13 @@ var Statement = (function () {
     var x = new RegExp('(' + D + ')\\s*(?:to|-|–|—|through|thru)\\s*(' + D + ')', 'i').exec(text);
     var iso = function (s) { var d = dateAt(s); return d && d.y ? d.y + '-' + pad(d.m) + '-' + pad(d.d) : null; };
     if (x) { var a = iso(x[1]), b = iso(x[2]); if (a && b) return { from: a < b ? a : b, to: a < b ? b : a }; }
+    var under = new RegExp('(?:opening|start(?:ing)?|from)\\s+date[^\\n]*?(?:closing|end(?:ing)?|to)\\s+date[^\\n]*\\n[^\\n]*?(' + D + ')\\s+(' + D + ')', 'i').exec(text);
+    if (under) { var u1 = iso(under[1]), u2 = iso(under[2]); if (u1 && u2) return { from: u1 < u2 ? u1 : u2, to: u1 < u2 ? u2 : u1 }; }
+    var half = new RegExp('(' + MONTH_RE + '\\s+\\d{1,2})\\s*(?:to|-|–|—|through|thru)\\s*(' + MONTH_RE + '\\s+\\d{1,2},?\\s+(\\d{4}))', 'i').exec(text);
+    if (half) {
+      var hb = iso(half[2]), ha = dateAt(half[1]);
+      if (hb && ha) { var hy = +half[3] - (ha.m > +hb.slice(5, 7) ? 1 : 0), hs = hy + '-' + pad(ha.m) + '-' + pad(ha.d); return { from: hs, to: hb }; }
+    }
     var sd = new RegExp('statement date:?\\s*(' + D + ')', 'i').exec(text);
     if (sd && iso(sd[1])) { var to = iso(sd[1]), t = new Date(to + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() - 31); return { from: t.toISOString().slice(0, 10), to: to, guessed: true }; }
     return null;
@@ -83,16 +90,27 @@ var Statement = (function () {
   }
   function numbersOf(lns) {
     var out = [];
-    lns.forEach(function (ln) {
-      if (!/\b(account|card|ending in|acct)\b/i.test(ln.text) || /period|statement date/i.test(ln.text)) return;
-      var groups = ln.text.match(/\d[\d-]*\d/g) || [], last = groups.length ? groups[groups.length - 1].replace(/-/g, '') : '';
-      if (last.length >= 4 && !/^(19|20)\d\d$/.test(last)) { var l4 = last.slice(-4); if (out.indexOf(l4) < 0) out.push(l4); }
+    lns.forEach(function (ln) {   // a masked card number counts on any line ("XXXX XXXXX1 23456" may sit under its heading)
+      var mk = /(?:[xX•*]{2,}[\s-]*)+\d?[\s-]*(\d{4,5})\b/.exec(ln.text);
+      if (mk) { var k4 = mk[1].slice(-4); if (!out.some(function (o) { return o.n === k4; })) out.push({ n: k4, masked: true }); }
     });
-    return out;
+    lns.forEach(function (ln) {
+      if (!/\b(account|card|ending in|acct)\b/i.test(ln.text) || /period|statement date|call|phone|telephone|toll[- ]free|lost|stolen|fax|tty|collect/i.test(ln.text)) return;
+      var groups = (ln.text.replace(/\b1?[-. ]?\(?\d{3}\)?[-. ]\d{3}[-. ]\d{4}\b/g, ' ').match(/\d[\d-]*\d/g) || []), last = groups.length ? groups[groups.length - 1].replace(/-/g, '') : '';   // phone numbers left out
+      if (last.length >= 4 && !/^(19|20)\d\d$/.test(last)) {
+        var l4 = last.slice(-4), masked = /[xX•*]{2,}[\s-]*\d{4,5}\b/.test(ln.text);   // "4537 XXXX XXXX 2210", "•••• 9034"
+        var have = out.filter(function (o) { return o.n === l4; })[0];
+        if (have) have.masked = have.masked || masked; else out.push({ n: l4, masked: masked });
+      }
+    });
+    // a masked card number is the surest sign; with one, other numbers on "account" lines (a customer number…) are left out
+    var m = out.filter(function (o) { return o.masked; });
+    return (m.length ? m : out).map(function (o) { return o.n; });
   }
 
   /* ---------- columns from the heading line ---------- */
   function headingOf(ln) {
+    if (/install?ment|original .*amount|\bterm\b|points|rewards/i.test(ln.text) && /date/i.test(ln.text)) return { skip: true };   // a plan's schedule or a rewards table: not transactions
     var cols = [], kinds = 0;
     ln.cells.forEach(function (c) {
       var t = c.text.toLowerCase(), k = null;
@@ -153,14 +171,33 @@ var Statement = (function () {
     var card = cardSays > bankSays || (cardSays === bankSays && /credit card|\bvisa\b|mastercard|american express|\bamex\b|card number/i.test(text));
     var period = periodOf(text);
     var opening = balanceOn(all, /\b(opening balance|previous (statement )?balance|balance forward|balance brought forward|beginning balance|starting balance)\b/i);
-    var closing = balanceOn(all, /\b(closing balance|new balance|ending balance|balance at end|balance carried forward)\b/i);
+    var closing = balanceOn(all, /\b(closing balance|new balance|ending balance|total balance|balance at end|balance carried forward)\b/i);
+    if (opening === null || closing === null) {   // "SEP 1 BALANCE  SEP 30 BALANCE" headings with the amounts under them
+      all.some(function (ln, i) {
+        var heads = ln.cells.filter(function (c) { var d = dateAt(c.text); return d && /balance\s*$/i.test(c.text); });
+        if (heads.length < 2) return false;
+        var below = all.slice(i + 1, i + 4).filter(function (b) { return b.page === ln.page && ln.y - b.y < 60 && b.cells.some(function (c) { return amountOf(c.text); }); })[0];   // the amounts may sit a line or two lower
+        if (!below) return false;
+        var val = function (hd) { var best = null; below.cells.forEach(function (c) { var a = amountOf(c.text); var dx = Math.abs(c.x0 - hd.x0); if (a && dx < 60 && (!best || dx < best.dx)) best = { v: a.neg ? -a.v : a.v, dx: dx }; }); return best && best.v; };
+        var o = val(heads[0]), c2 = val(heads[heads.length - 1]);
+        if (o === null || c2 === null) return false;
+        if (opening === null) opening = o; if (closing === null) closing = c2;
+        return true;
+      });
+    }
     var big = (pages[0] ? pages[0].items : []).slice().sort(function (x, y) { return y.h - x.h || y.y - x.y; })[0], bank = big ? big.str.trim() : '';   // the largest text on page 1: usually the bank's name
-    var rows = [], cols = null, last = null, inTable = false, lastLine = null;
+    var rows = [], cols = null, last = null, inTable = false, lastLine = null, skipping = false, section = null;
     all.forEach(function (ln) {
       if (lastLine && ln.page !== lastLine.page) { inTable = false; last = null; }
       var hd = headingOf(ln);
-      if (hd) { cols = hd; inTable = true; lastLine = ln; return; }
+      if (hd && hd.skip) { cols = null; inTable = false; skipping = true; lastLine = ln; return; }
+      if (hd) { cols = hd; inTable = true; skipping = false; lastLine = ln; return; }
+      if (skipping) { if (/^(your |total )/i.test(ln.text) && !dateAt((ln.cells[0] || {}).text)) skipping = /^total/i.test(ln.text); lastLine = ln; return; }   // until the next section
       if (!ln.cells.length) return;
+      if (ln.cells.length <= 2 && !ln.cells.some(function (c) { return amountOf(c.text); })) {
+        if (/^(your )?(payments( and credits| & credits)?|credits|payments received)\b/i.test(ln.text)) section = 'in';
+        else if (/^(your )?(new charges|purchases|charges|interest|fees|cash advances)|new charges and credits|transactions since/i.test(ln.text)) section = 'out';
+      }
       // a reference number may come before the date ("001  Sep 26  Sep 27  SHOP  12.34"): it is skipped
       var lead = 0;
       while (lead < 2 && ln.cells.length > lead + 1 && /^#?\d{1,8}$/.test(ln.cells[lead].text) && dateAt(ln.cells[lead + 1].text) && ln.cells[lead + 1].x0 < ln.pageW * 0.35) lead++;
@@ -180,7 +217,8 @@ var Statement = (function () {
         else if (!a) words.push(c.text);
       });
       if (!dt) words = ln.cells.filter(function (c) { return !(amountOf(c.text) && c.x0 > ln.pageW * 0.4); }).map(function (c) { return c.text; });
-      var desc = words.join(' ').replace(/\s+/g, ' ').trim();
+      var desc = words.join(' ').replace(/^[^A-Za-z0-9#*&(]+\s*/, '').replace(/\s+/g, ' ').trim();
+      desc = desc.replace(/\s+(Retail and Grocery|Restaurants|Transportation|Personal and Household Expenses|Professional and Financial Services|Health and Education|Hotel, Entertainment and Recreation|Home and Office Improvement|Foreign Currency Transactions|Other Transactions)$/i, '');   // CIBC's spend category column
       if (SKIP.test(ln.text)) { if (/total|balance/i.test(ln.text)) last = null; lastLine = ln; return; }
       var gapOk = lastLine && lastLine.page === ln.page && (lastLine.y - ln.y) <= Math.max(ln.h, 8) * 2.2;
       if (!amts.length) {   // words only: the description goes on, right under a transaction
@@ -198,7 +236,8 @@ var Statement = (function () {
         if (amount !== null) return;
         if (kind === 'out') amount = o.a.cr ? v : -v;
         else if (kind === 'in') amount = neg && !o.a.cr ? -v : v;
-        else amount = card ? (neg ? v : -v) : (neg ? -v : v);   // a card's purchases are owed (money out); a bank's minus is money out
+        else if (card) amount = neg || section === 'in' || /\bPAYMENT\b.*\bTHANK YOU\b|\bPAIEMENT\b|PAYMENT RECEIVED/i.test(desc) ? v : -v;   // owed purchases are money out; payments and credits money in
+        else amount = neg ? -v : v;   // a bank's minus is money out
       });
       if (amount === null) { lastLine = ln; return; }
       row.amount = Math.round(amount * 100) / 100;
@@ -221,9 +260,12 @@ var Statement = (function () {
       var diff = Math.round((closing - expect) * 100) / 100;
       check = { ok: Math.abs(diff) < 0.011, opening: opening, closing: closing, expected: expect, diff: diff, card: card };
     } else notes.push('The statement\'s opening and closing balances were not found, so the list could not be checked against them.');
+    var blank = pages.filter(function (pg) { return !pg.items.length; }).map(function (pg) { return pg.n; });
+    if (blank.length && !(check && check.ok)) notes.unshift(   // a blank last page on a statement that adds up is just an empty page
+      'Page' + (blank.length > 1 ? 's ' : ' ') + blank.join(', ') + (blank.length > 1 ? ' are images' : ' is an image') + ' (a scan, a photo, or a copy saved as a picture), so ' + (blank.length > 1 ? 'their' : 'its') + ' transactions cannot be read. Download the statement again from your bank\'s website, or use its CSV export.');
     if (!period) notes.push('No statement period was found; years were worked out from today\'s date.');
     rows.forEach(function (r) { delete r.descX; });
-    return { kind: card ? 'card' : 'bank', bank: bank, numbers: numbersOf(all), period: period, opening: opening, closing: closing, rows: rows, check: check, notes: notes };
+    return { imagePages: blank, kind: card ? 'card' : 'bank', bank: bank, numbers: numbersOf(all), period: period, opening: opening, closing: closing, rows: rows, check: check, notes: notes };
   }
   /* as rows of a CSV-like table for the import screen: amounts as a bank shows them (money out negative) */
   function toTable(st) {
