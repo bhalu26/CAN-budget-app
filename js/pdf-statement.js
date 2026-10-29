@@ -146,7 +146,11 @@ var Statement = (function () {
     var all = [], notes = [];
     pages.forEach(function (pg) { lines(pg).forEach(function (ln) { ln.page = pg.n; ln.pageW = pg.width; all.push(ln); }); });
     var text = all.map(function (l) { return l.text; }).join('\n');
-    var card = /credit card|\bvisa\b|mastercard|american express|\bamex\b|card number|minimum payment|credit limit|new balance/i.test(text) && !/chequing|checking|savings account|member savings/i.test(text);
+    // a card statement says so in its summary (minimum payment, credit limit, new balance); a bank account in its title.
+    // A word in one transaction ("PAYMENT FROM CHEQUING") does not decide it.
+    var cardSays = (text.match(/minimum payment|credit limit|available credit|new balance|payment due date|previous balance/gi) || []).length;
+    var bankSays = (text.match(/chequing account|checking account|savings account|member savings|opening balance|closing balance|\bwithdrawals\b|\bdeposits\b/gi) || []).length;
+    var card = cardSays > bankSays || (cardSays === bankSays && /credit card|\bvisa\b|mastercard|american express|\bamex\b|card number/i.test(text));
     var period = periodOf(text);
     var opening = balanceOn(all, /\b(opening balance|previous (statement )?balance|balance forward|balance brought forward|beginning balance|starting balance)\b/i);
     var closing = balanceOn(all, /\b(closing balance|new balance|ending balance|balance at end|balance carried forward)\b/i);
@@ -156,9 +160,14 @@ var Statement = (function () {
       if (lastLine && ln.page !== lastLine.page) { inTable = false; last = null; }
       var hd = headingOf(ln);
       if (hd) { cols = hd; inTable = true; lastLine = ln; return; }
-      var first = ln.cells[0]; if (!first) return;
-      var dt = first.x0 < ln.pageW * 0.35 ? dateAt(first.text) : null, rest = dt ? first.text.slice(dt.len).trim() : first.text, post = null;
-      var cells = ln.cells.slice(1);
+      if (!ln.cells.length) return;
+      // a reference number may come before the date ("001  Sep 26  Sep 27  SHOP  12.34"): it is skipped
+      var lead = 0;
+      while (lead < 2 && ln.cells.length > lead + 1 && /^#?\d{1,8}$/.test(ln.cells[lead].text) && dateAt(ln.cells[lead + 1].text) && ln.cells[lead + 1].x0 < ln.pageW * 0.35) lead++;
+      var first = ln.cells[lead], ftext = first.text, refm = /^#?\d{1,8}\s+/.exec(ftext);
+      if (refm && !dateAt(ftext) && dateAt(ftext.slice(refm[0].length))) ftext = ftext.slice(refm[0].length);   // the same, run together in one cell
+      var dt = first.x0 < ln.pageW * 0.35 ? dateAt(ftext) : null, rest = dt ? ftext.slice(dt.len).trim() : first.text, post = null;
+      var cells = ln.cells.slice(lead + 1);
       if (dt) {   // a second date right after the first: the posting date
         var d2 = dateAt(rest) || (!rest && cells[0] ? dateAt(cells[0].text) : null);
         if (d2) { post = d2; if (rest) rest = rest.slice(d2.len).trim(); else { var c0 = cells.shift(); rest = c0.text.slice(d2.len).trim(); } }
