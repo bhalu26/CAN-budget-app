@@ -26,3 +26,11 @@ Thumbs.db
 # the sample seed is generic and meant to be shared
 !examples/*.example.json
 !examples/demo-budget-2026.json
+
+# made-up statements and expected values for the PDF tools' tests (not real data)
+!tools/pdf-layout-dump/dev-tools/fixtures/*.pdf
+!tools/pdf-layout-dump/dev-tools/fixtures/*.json
+
+# the tests read your private files from here (or from BUDGET_SEED / BUDGET_RULES); never commit them
+rules/
+tests/unit/golden.json

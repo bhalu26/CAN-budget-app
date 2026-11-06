@@ -62,6 +62,8 @@ You need a desktop browser: Chrome, Edge or Safari.
 index.html        the app (open this)
 css/  js/         the app's code: plain JavaScript, no build step
 vendor/pdfjs/     Mozilla pdf.js 3.11.174 (Apache 2.0), used only to read PDF statements
+tools/           pdf-layout-dump: an offline page that makes a shareable, masked layout copy of a bank PDF and checks its arithmetic
+tests/           unit and browser tests (they need your private seed; see tests/README.md)
 examples/         a starter budget seed, and a demo budget for 2026 (see examples/DEMO.md)
 USER-GUIDE.md     how to use each part of the app
 CHANGELOG.md      what changed in each version
