@@ -1,0 +1,805 @@
+{
+ "chq.pdf": {
+  "opening": 250000,
+  "closing": 549491,
+  "rows": [
+   {
+    "date": "Oct 1",
+    "desc": "FRESHCO MARKET #4521 VANCOUVER BC",
+    "cents": -11111,
+    "balance": 238889,
+    "cont": ""
+   },
+   {
+    "date": "Oct 1",
+    "desc": "ZENITH PHYSIO CLINIC",
+    "cents": -5443,
+    "balance": 233446,
+    "cont": ""
+   },
+   {
+    "date": "Oct 2",
+    "desc": "BLUEBIRD CAFE NORTH VAN",
+    "cents": -13437,
+    "balance": 220009,
+    "cont": "REF 8841 TORONTO ON 4455"
+   },
+   {
+    "date": "Oct 2",
+    "desc": "SHELL C7731 BURNABY",
+    "cents": -21829,
+    "balance": 198180,
+    "cont": ""
+   },
+   {
+    "date": "Oct 3",
+    "desc": "E-TRANSFER SENT HARPREET GILL",
+    "cents": -2082,
+    "balance": 196098,
+    "cont": ""
+   },
+   {
+    "date": "Oct 3",
+    "desc": "PAYROLL DEPOSIT NORTHWIND LTD",
+    "cents": 159494,
+    "balance": 355592,
+    "cont": ""
+   },
+   {
+    "date": "Oct 4",
+    "desc": "HYDRO ONE BILL PAY",
+    "cents": -18059,
+    "balance": 337533,
+    "cont": ""
+   },
+   {
+    "date": "Oct 4",
+    "desc": "NETFLIX.COM 866-579-7172",
+    "cents": -3584,
+    "balance": 333949,
+    "cont": ""
+   },
+   {
+    "date": "Oct 5",
+    "desc": "AMOGHA RESTAURANT VANCOUVER",
+    "cents": -12482,
+    "balance": 321467,
+    "cont": "REF 8841 TORONTO ON 4455"
+   },
+   {
+    "date": "Oct 5",
+    "desc": "ROGERS WIRELESS 8841-2290",
+    "cents": -19596,
+    "balance": 301871,
+    "cont": ""
+   },
+   {
+    "date": "Oct 6",
+    "desc": "FRESHCO MARKET #4521 VANCOUVER BC",
+    "cents": -2400,
+    "balance": 299471,
+    "cont": ""
+   },
+   {
+    "date": "Oct 6",
+    "desc": "ZENITH PHYSIO CLINIC",
+    "cents": -17127,
+    "balance": 282344,
+    "cont": ""
+   },
+   {
+    "date": "Oct 7",
+    "desc": "BLUEBIRD CAFE NORTH VAN",
+    "cents": -7535,
+    "balance": 274809,
+    "cont": ""
+   },
+   {
+    "date": "Oct 7",
+    "desc": "SHELL C7731 BURNABY",
+    "cents": -1728,
+    "balance": 273081,
+    "cont": ""
+   },
+   {
+    "date": "Oct 8",
+    "desc": "E-TRANSFER SENT HARPREET GILL",
+    "cents": -3316,
+    "balance": 269765,
+    "cont": "REF 8841 TORONTO ON 4455"
+   },
+   {
+    "date": "Oct 8",
+    "desc": "PAYROLL DEPOSIT NORTHWIND LTD",
+    "cents": 206838,
+    "balance": 476603,
+    "cont": ""
+   },
+   {
+    "date": "Oct 9",
+    "desc": "HYDRO ONE BILL PAY",
+    "cents": -14202,
+    "balance": 462401,
+    "cont": ""
+   },
+   {
+    "date": "Oct 9",
+    "desc": "NETFLIX.COM 866-579-7172",
+    "cents": -2789,
+    "balance": 459612,
+    "cont": ""
+   },
+   {
+    "date": "Oct 10",
+    "desc": "AMOGHA RESTAURANT VANCOUVER",
+    "cents": -8386,
+    "balance": 451226,
+    "cont": ""
+   },
+   {
+    "date": "Oct 10",
+    "desc": "ROGERS WIRELESS 8841-2290",
+    "cents": -3472,
+    "balance": 447754,
+    "cont": ""
+   },
+   {
+    "date": "Oct 11",
+    "desc": "FRESHCO MARKET #4521 VANCOUVER BC",
+    "cents": -18556,
+    "balance": 429198,
+    "cont": "REF 8841 TORONTO ON 4455"
+   },
+   {
+    "date": "Oct 11",
+    "desc": "ZENITH PHYSIO CLINIC",
+    "cents": -14410,
+    "balance": 414788,
+    "cont": ""
+   },
+   {
+    "date": "Oct 12",
+    "desc": "BLUEBIRD CAFE NORTH VAN",
+    "cents": -2436,
+    "balance": 412352,
+    "cont": ""
+   },
+   {
+    "date": "Oct 12",
+    "desc": "SHELL C7731 BURNABY",
+    "cents": -19028,
+    "balance": 393324,
+    "cont": ""
+   },
+   {
+    "date": "Oct 13",
+    "desc": "E-TRANSFER SENT HARPREET GILL",
+    "cents": -4556,
+    "balance": 388768,
+    "cont": ""
+   },
+   {
+    "date": "Oct 13",
+    "desc": "PAYROLL DEPOSIT NORTHWIND LTD",
+    "cents": 179260,
+    "balance": 568028,
+    "cont": ""
+   },
+   {
+    "date": "Oct 14",
+    "desc": "HYDRO ONE BILL PAY",
+    "cents": -21164,
+    "balance": 546864,
+    "cont": "REF 8841 TORONTO ON 4455"
+   },
+   {
+    "date": "Oct 14",
+    "desc": "NETFLIX.COM 866-579-7172",
+    "cents": -21059,
+    "balance": 525805,
+    "cont": ""
+   },
+   {
+    "date": "Oct 15",
+    "desc": "AMOGHA RESTAURANT VANCOUVER",
+    "cents": -19603,
+    "balance": 506202,
+    "cont": ""
+   },
+   {
+    "date": "Oct 15",
+    "desc": "ROGERS WIRELESS 8841-2290",
+    "cents": -2527,
+    "balance": 503675,
+    "cont": ""
+   },
+   {
+    "date": "Oct 16",
+    "desc": "FRESHCO MARKET #4521 VANCOUVER BC",
+    "cents": -19410,
+    "balance": 484265,
+    "cont": ""
+   },
+   {
+    "date": "Oct 16",
+    "desc": "ZENITH PHYSIO CLINIC",
+    "cents": -19687,
+    "balance": 464578,
+    "cont": ""
+   },
+   {
+    "date": "Oct 17",
+    "desc": "BLUEBIRD CAFE NORTH VAN",
+    "cents": -13498,
+    "balance": 451080,
+    "cont": "REF 8841 TORONTO ON 4455"
+   },
+   {
+    "date": "Oct 17",
+    "desc": "SHELL C7731 BURNABY",
+    "cents": -2124,
+    "balance": 448956,
+    "cont": ""
+   },
+   {
+    "date": "Oct 18",
+    "desc": "E-TRANSFER SENT HARPREET GILL",
+    "cents": -7744,
+    "balance": 441212,
+    "cont": ""
+   },
+   {
+    "date": "Oct 18",
+    "desc": "PAYROLL DEPOSIT NORTHWIND LTD",
+    "cents": 156105,
+    "balance": 597317,
+    "cont": ""
+   },
+   {
+    "date": "Oct 19",
+    "desc": "HYDRO ONE BILL PAY",
+    "cents": -18740,
+    "balance": 578577,
+    "cont": ""
+   },
+   {
+    "date": "Oct 19",
+    "desc": "NETFLIX.COM 866-579-7172",
+    "cents": -4863,
+    "balance": 573714,
+    "cont": ""
+   },
+   {
+    "date": "Oct 20",
+    "desc": "AMOGHA RESTAURANT VANCOUVER",
+    "cents": -9989,
+    "balance": 563725,
+    "cont": "REF 8841 TORONTO ON 4455"
+   },
+   {
+    "date": "Oct 20",
+    "desc": "ROGERS WIRELESS 8841-2290",
+    "cents": -14234,
+    "balance": 549491,
+    "cont": ""
+   }
+  ]
+ },
+ "chq-wrong.pdf": {
+  "opening": 250000,
+  "closing": 682083,
+  "rows": [
+   {
+    "date": "Oct 1",
+    "desc": "FRESHCO MARKET #4521 VANCOUVER BC",
+    "cents": -5226,
+    "balance": 244774,
+    "cont": ""
+   },
+   {
+    "date": "Oct 1",
+    "desc": "ZENITH PHYSIO CLINIC",
+    "cents": -18217,
+    "balance": 226557,
+    "cont": ""
+   },
+   {
+    "date": "Oct 2",
+    "desc": "BLUEBIRD CAFE NORTH VAN",
+    "cents": -4359,
+    "balance": 222198,
+    "cont": "REF 8841 TORONTO ON 4455"
+   },
+   {
+    "date": "Oct 2",
+    "desc": "SHELL C7731 BURNABY",
+    "cents": -19207,
+    "balance": 202991,
+    "cont": ""
+   },
+   {
+    "date": "Oct 3",
+    "desc": "E-TRANSFER SENT HARPREET GILL",
+    "cents": -10608,
+    "balance": 192383,
+    "cont": ""
+   },
+   {
+    "date": "Oct 3",
+    "desc": "PAYROLL DEPOSIT NORTHWIND LTD",
+    "cents": 223434,
+    "balance": 415817,
+    "cont": ""
+   },
+   {
+    "date": "Oct 4",
+    "desc": "HYDRO ONE BILL PAY",
+    "cents": -22847,
+    "balance": 392970,
+    "cont": ""
+   },
+   {
+    "date": "Oct 4",
+    "desc": "NETFLIX.COM 866-579-7172",
+    "cents": -6422,
+    "balance": 386548,
+    "cont": ""
+   },
+   {
+    "date": "Oct 5",
+    "desc": "AMOGHA RESTAURANT VANCOUVER",
+    "cents": -3876,
+    "balance": 382672,
+    "cont": "REF 8841 TORONTO ON 4455"
+   },
+   {
+    "date": "Oct 5",
+    "desc": "ROGERS WIRELESS 8841-2290",
+    "cents": -19557,
+    "balance": 363115,
+    "cont": ""
+   },
+   {
+    "date": "Oct 6",
+    "desc": "FRESHCO MARKET #4521 VANCOUVER BC",
+    "cents": -19217,
+    "balance": 343898,
+    "cont": ""
+   },
+   {
+    "date": "Oct 6",
+    "desc": "ZENITH PHYSIO CLINIC",
+    "cents": -21435,
+    "balance": 322463,
+    "cont": ""
+   },
+   {
+    "date": "Oct 7",
+    "desc": "BLUEBIRD CAFE NORTH VAN",
+    "cents": -6656,
+    "balance": 315807,
+    "cont": ""
+   },
+   {
+    "date": "Oct 7",
+    "desc": "SHELL C7731 BURNABY",
+    "cents": -12702,
+    "balance": 303105,
+    "cont": ""
+   },
+   {
+    "date": "Oct 8",
+    "desc": "E-TRANSFER SENT HARPREET GILL",
+    "cents": -3692,
+    "balance": 299413,
+    "cont": "REF 8841 TORONTO ON 4455"
+   },
+   {
+    "date": "Oct 8",
+    "desc": "PAYROLL DEPOSIT NORTHWIND LTD",
+    "cents": 221793,
+    "balance": 521206,
+    "cont": ""
+   },
+   {
+    "date": "Oct 9",
+    "desc": "HYDRO ONE BILL PAY",
+    "cents": -23834,
+    "balance": 497372,
+    "cont": ""
+   },
+   {
+    "date": "Oct 9",
+    "desc": "NETFLIX.COM 866-579-7172",
+    "cents": -2557,
+    "balance": 494815,
+    "cont": ""
+   },
+   {
+    "date": "Oct 10",
+    "desc": "AMOGHA RESTAURANT VANCOUVER",
+    "cents": -18993,
+    "balance": 475822,
+    "cont": ""
+   },
+   {
+    "date": "Oct 10",
+    "desc": "ROGERS WIRELESS 8841-2290",
+    "cents": -2453,
+    "balance": 473369,
+    "cont": ""
+   },
+   {
+    "date": "Oct 11",
+    "desc": "FRESHCO MARKET #4521 VANCOUVER BC",
+    "cents": -20783,
+    "balance": 452586,
+    "cont": "REF 8841 TORONTO ON 4455"
+   },
+   {
+    "date": "Oct 11",
+    "desc": "ZENITH PHYSIO CLINIC",
+    "cents": -7248,
+    "balance": 445338,
+    "cont": ""
+   },
+   {
+    "date": "Oct 12",
+    "desc": "BLUEBIRD CAFE NORTH VAN",
+    "cents": -16766,
+    "balance": 428572,
+    "cont": ""
+   },
+   {
+    "date": "Oct 12",
+    "desc": "SHELL C7731 BURNABY",
+    "cents": -22795,
+    "balance": 405777,
+    "cont": ""
+   },
+   {
+    "date": "Oct 13",
+    "desc": "E-TRANSFER SENT HARPREET GILL",
+    "cents": -17923,
+    "balance": 387854,
+    "cont": ""
+   },
+   {
+    "date": "Oct 13",
+    "desc": "PAYROLL DEPOSIT NORTHWIND LTD",
+    "cents": 206045,
+    "balance": 593899,
+    "cont": ""
+   },
+   {
+    "date": "Oct 14",
+    "desc": "HYDRO ONE BILL PAY",
+    "cents": -10793,
+    "balance": 583106,
+    "cont": "REF 8841 TORONTO ON 4455"
+   },
+   {
+    "date": "Oct 14",
+    "desc": "NETFLIX.COM 866-579-7172",
+    "cents": -15756,
+    "balance": 567350,
+    "cont": ""
+   },
+   {
+    "date": "Oct 15",
+    "desc": "AMOGHA RESTAURANT VANCOUVER",
+    "cents": -19687,
+    "balance": 547663,
+    "cont": ""
+   },
+   {
+    "date": "Oct 15",
+    "desc": "ROGERS WIRELESS 8841-2290",
+    "cents": -15349,
+    "balance": 532414,
+    "cont": ""
+   },
+   {
+    "date": "Oct 16",
+    "desc": "FRESHCO MARKET #4521 VANCOUVER BC",
+    "cents": -12348,
+    "balance": 519966,
+    "cont": ""
+   },
+   {
+    "date": "Oct 16",
+    "desc": "ZENITH PHYSIO CLINIC",
+    "cents": -10322,
+    "balance": 509644,
+    "cont": ""
+   },
+   {
+    "date": "Oct 17",
+    "desc": "BLUEBIRD CAFE NORTH VAN",
+    "cents": -8640,
+    "balance": 501004,
+    "cont": "REF 8841 TORONTO ON 4455"
+   },
+   {
+    "date": "Oct 17",
+    "desc": "SHELL C7731 BURNABY",
+    "cents": -6390,
+    "balance": 494614,
+    "cont": ""
+   },
+   {
+    "date": "Oct 18",
+    "desc": "E-TRANSFER SENT HARPREET GILL",
+    "cents": -23404,
+    "balance": 471210,
+    "cont": ""
+   },
+   {
+    "date": "Oct 18",
+    "desc": "PAYROLL DEPOSIT NORTHWIND LTD",
+    "cents": 252213,
+    "balance": 723423,
+    "cont": ""
+   },
+   {
+    "date": "Oct 19",
+    "desc": "HYDRO ONE BILL PAY",
+    "cents": -8498,
+    "balance": 714925,
+    "cont": ""
+   },
+   {
+    "date": "Oct 19",
+    "desc": "NETFLIX.COM 866-579-7172",
+    "cents": -3182,
+    "balance": 711743,
+    "cont": ""
+   },
+   {
+    "date": "Oct 20",
+    "desc": "AMOGHA RESTAURANT VANCOUVER",
+    "cents": -19322,
+    "balance": 692421,
+    "cont": "REF 8841 TORONTO ON 4455"
+   },
+   {
+    "date": "Oct 20",
+    "desc": "ROGERS WIRELESS 8841-2290",
+    "cents": -10338,
+    "balance": 682083,
+    "cont": ""
+   }
+  ]
+ },
+ "card.pdf": {
+  "rows": [
+   {
+    "date": "Oct 3",
+    "desc": "FRESHCO MARKET #4521 VANCOUVER BC",
+    "cents": 8904,
+    "cont": ""
+   },
+   {
+    "date": "Oct 4",
+    "desc": "ZENITH PHYSIO CLINIC",
+    "cents": 8411,
+    "cont": ""
+   },
+   {
+    "date": "Oct 5",
+    "desc": "BLUEBIRD CAFE NORTH VAN",
+    "cents": 14638,
+    "cont": ""
+   },
+   {
+    "date": "Oct 6",
+    "desc": "SHELL C7731 BURNABY",
+    "cents": 5927,
+    "cont": ""
+   },
+   {
+    "date": "Oct 7",
+    "desc": "E-TRANSFER SENT HARPREET GILL",
+    "cents": 12251,
+    "cont": ""
+   },
+   {
+    "date": "Oct 8",
+    "desc": "PAYMENT - THANK YOU",
+    "cents": -25000,
+    "cont": ""
+   },
+   {
+    "date": "Oct 9",
+    "desc": "HYDRO ONE BILL PAY",
+    "cents": 7653,
+    "cont": ""
+   },
+   {
+    "date": "Oct 10",
+    "desc": "NETFLIX.COM 866-579-7172",
+    "cents": 5017,
+    "cont": ""
+   },
+   {
+    "date": "Oct 11",
+    "desc": "AMOGHA RESTAURANT VANCOUVER",
+    "cents": 10277,
+    "cont": ""
+   },
+   {
+    "date": "Oct 12",
+    "desc": "ROGERS WIRELESS 8841-2290",
+    "cents": 1499,
+    "cont": "USD 12.50 @ 1.3600"
+   },
+   {
+    "date": "Oct 13",
+    "desc": "FRESHCO MARKET #4521 VANCOUVER BC",
+    "cents": 2234,
+    "cont": ""
+   },
+   {
+    "date": "Oct 14",
+    "desc": "ZENITH PHYSIO CLINIC",
+    "cents": 8687,
+    "cont": ""
+   },
+   {
+    "date": "Oct 15",
+    "desc": "BLUEBIRD CAFE NORTH VAN",
+    "cents": 7150,
+    "cont": ""
+   },
+   {
+    "date": "Oct 16",
+    "desc": "SHELL C7731 BURNABY",
+    "cents": 3002,
+    "cont": ""
+   },
+   {
+    "date": "Oct 17",
+    "desc": "E-TRANSFER SENT HARPREET GILL",
+    "cents": 12704,
+    "cont": ""
+   },
+   {
+    "date": "Oct 18",
+    "desc": "PAYROLL DEPOSIT NORTHWIND LTD",
+    "cents": 5904,
+    "cont": ""
+   }
+  ]
+ },
+ "oneline.pdf": {
+  "opening": 180000,
+  "rows": [
+   {
+    "date": "10/01/2026",
+    "desc": "FRESHCO MARKET #4521 VANCOUVER BC",
+    "cents": 5480,
+    "balance": 185480,
+    "cont": ""
+   },
+   {
+    "date": "10/02/2026",
+    "desc": "ZENITH PHYSIO CLINIC",
+    "cents": -16522,
+    "balance": 168958,
+    "cont": ""
+   },
+   {
+    "date": "10/03/2026",
+    "desc": "BLUEBIRD CAFE NORTH VAN",
+    "cents": -14318,
+    "balance": 154640,
+    "cont": ""
+   },
+   {
+    "date": "10/04/2026",
+    "desc": "SHELL C7731 BURNABY",
+    "cents": -1784,
+    "balance": 152856,
+    "cont": ""
+   },
+   {
+    "date": "10/05/2026",
+    "desc": "E-TRANSFER SENT HARPREET GILL",
+    "cents": 3043,
+    "balance": 155899,
+    "cont": ""
+   },
+   {
+    "date": "10/06/2026",
+    "desc": "PAYROLL DEPOSIT NORTHWIND LTD",
+    "cents": -18787,
+    "balance": 137112,
+    "cont": ""
+   },
+   {
+    "date": "10/07/2026",
+    "desc": "HYDRO ONE BILL PAY",
+    "cents": -19276,
+    "balance": 117836,
+    "cont": ""
+   },
+   {
+    "date": "10/08/2026",
+    "desc": "NETFLIX.COM 866-579-7172",
+    "cents": -10780,
+    "balance": 107056,
+    "cont": ""
+   },
+   {
+    "date": "10/09/2026",
+    "desc": "AMOGHA RESTAURANT VANCOUVER",
+    "cents": 11645,
+    "balance": 118701,
+    "cont": ""
+   },
+   {
+    "date": "10/10/2026",
+    "desc": "ROGERS WIRELESS 8841-2290",
+    "cents": -11974,
+    "balance": 106727,
+    "cont": ""
+   },
+   {
+    "date": "10/11/2026",
+    "desc": "FRESHCO MARKET #4521 VANCOUVER BC",
+    "cents": -19976,
+    "balance": 86751,
+    "cont": ""
+   },
+   {
+    "date": "10/12/2026",
+    "desc": "ZENITH PHYSIO CLINIC",
+    "cents": -16775,
+    "balance": 69976,
+    "cont": ""
+   },
+   {
+    "date": "10/13/2026",
+    "desc": "BLUEBIRD CAFE NORTH VAN",
+    "cents": 19502,
+    "balance": 89478,
+    "cont": ""
+   },
+   {
+    "date": "10/14/2026",
+    "desc": "SHELL C7731 BURNABY",
+    "cents": -15448,
+    "balance": 74030,
+    "cont": ""
+   },
+   {
+    "date": "10/15/2026",
+    "desc": "E-TRANSFER SENT HARPREET GILL",
+    "cents": -2753,
+    "balance": 71277,
+    "cont": ""
+   },
+   {
+    "date": "10/16/2026",
+    "desc": "PAYROLL DEPOSIT NORTHWIND LTD",
+    "cents": -3566,
+    "balance": 67711,
+    "cont": ""
+   },
+   {
+    "date": "10/17/2026",
+    "desc": "HYDRO ONE BILL PAY",
+    "cents": 9345,
+    "balance": 77056,
+    "cont": ""
+   },
+   {
+    "date": "10/18/2026",
+    "desc": "NETFLIX.COM 866-579-7172",
+    "cents": -16035,
+    "balance": 61021,
+    "cont": ""
+   }
+  ]
+ }
+}
