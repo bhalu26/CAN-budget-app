@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Offline only: this page may not load or send anything over the network. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'; frame-src 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Statement Layout Dump</title>
+<link rel="stylesheet" href="css/dump.css">
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <h1>Statement layout dump</h1>
+    <p class="lead">Reads a bank PDF on this computer and makes a copy that shows only its <strong>layout</strong>:
+      every digit becomes <code>9</code> and every unfamiliar word becomes <code>xxxx</code>. Look at the preview, then share the file.
+      Nothing leaves this computer; the page cannot use the internet.</p>
+  </header>
+
+  <section class="card" aria-labelledby="h1s">
+    <h2 id="h1s">1. Choose your PDF statements</h2>
+    <label class="drop" id="drop" for="file">
+      <span class="btn primary" aria-hidden="true">Choose PDF files</span>
+      <span class="muted">or drop them here. You can pick several banks at once.</span>
+    </label>
+    <input type="file" id="file" accept="application/pdf,.pdf" multiple class="sr">
+  </section>
+
+  <section class="card" aria-labelledby="h2s">
+    <h2 id="h2s">2. Words to hide or keep</h2>
+    <div class="grid2">
+      <div>
+        <label for="hide">Always hide these words</label>
+        <input type="text" id="hide" autocomplete="off" spellcheck="false" placeholder="your name, street, employer">
+        <p class="hint">Hidden even if they look like ordinary statement words. Separate with commas or spaces.</p>
+      </div>
+      <div>
+        <label for="keep">Keep these words readable</label>
+        <input type="text" id="keep" autocomplete="off" spellcheck="false" placeholder="your bank's name">
+        <p class="hint">Helps recognise the bank. Only words that are not personal.</p>
+      </div>
+    </div>
+    <label class="check"><input type="checkbox" id="sw"> <span>Also show which program made the PDF <span class="muted" id="swname"></span><br><span class="hint">Off by default: this hidden field can contain names. Turn it on only if what is shown in brackets looks like software, not a person.</span></span></label>
+  </section>
+
+  <section class="card" id="results" hidden aria-labelledby="h3s">
+    <h2 id="h3s">3. Check, then share</h2>
+    <ul class="files" id="files"></ul>
+    <div id="detail" hidden>
+      <div class="summary" id="summary" role="status"></div>
+      <div class="leak" id="leak"></div>
+      <div class="tabs" id="tabs" role="group" aria-label="Preview"></div>
+      <p class="hint" id="legend"></p>
+      <div id="view"></div>
+      <div class="bar">
+        <button class="btn primary" id="dlJson" type="button">Download layout file (.json)</button>
+        <button class="btn" id="dlTxt" type="button">Download as text (.txt)</button>
+        <button class="btn" id="copy" type="button">Copy text</button>
+        <button class="btn" id="dlAll" type="button" hidden>Download all files (.json)</button>
+        <span class="muted" id="msg" role="status"></span>
+      </div>
+    </div>
+  </section>
+</main>
+<noscript>This page needs JavaScript turned on.</noscript>
+<script src="vendor/pdf.js"></script>
+<script src="vendor/pdf.worker.js"></script>
+<script src="js/mask.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/dump.js"></script>
+</body>
+</html>

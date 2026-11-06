@@ -50,7 +50,7 @@ How to use each part of Our Budget. New here? Start with the [README](README.md)
 
 You can import **CSV files** (downloaded from your bank's website) or **PDF statements**. Both end up in the same review screen.
 
-**PDF statements** are read on your computer; nothing is uploaded. The app finds the transactions, works out each date's year from the statement period, and checks the list against the statement's own balances. Look for **✓ The rows add up** before importing. If it says the rows don't add up, compare with the PDF: a line may have been missed or misread. Notes:
+**PDF statements** are read on your computer; nothing is uploaded. The app finds the transactions, works out each date's year from the statement period, and checks the list against the statement's own balances. Under the PDF line the app lists, in words, what the statement's own arithmetic proved: the running balance, "Total of…" lines, and the summary box. Look for ✓ lines before importing. If a check fails, or nothing could prove the numbers, **Import all** stays off until you tick "I have checked these lines against my statement": compare with the PDF, because a line may have been missed or misread. A line where the printed balance stops following goes to Review with the reason. Notes:
 - A statement downloaded from your bank's website works best. A scan or photo has no text to read, and the app says so.
 - A password-protected PDF asks for its password, which is used once and not kept.
 - A credit card's new balance is saved as what you owe on that card.

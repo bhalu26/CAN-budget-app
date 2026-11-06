@@ -51,7 +51,7 @@ var Importer = (function () {
   function readPdf(fl) {
     return U.readFile(fl, true).then(function (buf) {
       var bytes = new Uint8Array(buf);
-      var use = function (d) { addFile(fl.name, null, Statement.parse(d.pages, U.today())); };
+      var use = function (d) { var st = Statement.parse(d.pages, U.today()); try { st.proof = PdfProof.run(d.pages); } catch (e) { st.proof = null; } addFile(fl.name, null, st); };
       return PdfRead.pages(bytes.slice()).then(use, function (e) {
         if (e.code !== 'NEED_PASSWORD') throw e;
         return new Promise(function (ok, no) {
@@ -131,6 +131,10 @@ var Importer = (function () {
       it.selectable = true;
       it.selected = it.state === 'maybe' ? false : o && o.dupChoice === undefined ? o.selected : (it.state === 'ready' || it.state === 'review');
       if (o && o.touched) { it.catId = o.catId; it.touched = true; applyCat(it); }
+      if (f.pdf) {   // a line where the printed running balance stops following goes to Review, with the reason
+        var why = PdfProof.flagFor(f.pdf, it.line - 2);
+        if (why) { if (it.state === 'ready') it.state = 'review'; if (it.state === 'review' || it.state === 'maybe') { it.reasons.push(why); it.review = true; } }
+      }
       f.items.push(it);
     });
     f.balance = f.balCol >= 0 ? Accounts.fromFile(f.items.filter(function (it) { return it.state !== 'fix'; }).map(function (it) { return { date: it.date, balance: Engine.parseAmountStr((it.raw || [])[f.balCol]) }; })) : null;
@@ -158,7 +162,8 @@ var Importer = (function () {
     return best;
   }
   /* What the statement itself says, and whether the rows add up to it */
-  function statementNote(st) {
+  function needsAck(f) { return !!f.pdf && PdfProof.status(f.pdf).mustAck && !f.pdfAck; }
+  function statementNote(st, f) {
     var m = function (v) { return U.money(Math.abs(v), { cents: true }); }, c = st.check, card = st.kind === 'card';
     var per = st.period ? U.shortDate(st.period.from) + ' ' + st.period.from.slice(0, 4) + ' to ' + U.shortDate(st.period.to) + ' ' + st.period.to.slice(0, 4) : 'period not found';
     var line1 = h('div', null, h('strong', null, 'PDF statement'), ' · ' + (st.bank || 'bank not named') + (st.numbers.length ? ' · ' + (card ? 'card' : 'account') + ' ending ' + st.numbers.join(', ') : '') + ' · ' + per + ' · ' + st.rows.length + ' transaction' + (st.rows.length === 1 ? '' : 's'));
@@ -166,7 +171,13 @@ var Importer = (function () {
       : !c ? h('div', { class: 'amber strong' }, '⚠ The statement\'s opening and closing balances were not found, so the rows could not be checked against them. Check them against the PDF.')
       : c.ok ? h('div', { class: 'ok strong' }, '✓ The rows add up: ' + (card ? 'previous balance ' : 'opening balance ') + m(c.opening) + (card ? ' + purchases − payments and credits = new balance ' : ' + deposits − withdrawals = closing balance ') + m(c.closing) + '.')
       : h('div', { class: 'red strong', role: 'alert' }, '⚠ The rows do not add up to the statement: they come to ' + m(c.expected) + ', but the statement says ' + m(c.closing) + ' (' + (c.diff > 0 ? '' : '−') + m(c.diff) + ' ' + (card ? 'owed' : '') + ' unexplained). A line may have been missed or read wrongly: compare with the PDF before importing.');
-    return h('div', { class: 'notice stack-sm pdf-note', role: 'status' }, line1, line2, st.notes.length ? h('div', { class: 'small muted' }, st.notes.join(' ')) : null);
+    var stt = PdfProof.status(st), checks = (st.proof ? st.proof.checks : []).filter(function (x) { return !(x.ok === null && c && c.ok); });
+    var list = checks.length ? h('ul', { class: 'pdf-checks' }, checks.map(function (x) {
+      return h('li', { class: x.ok === false ? 'amber strong' : x.ok === true ? 'ok' : 'muted' }, h('span', { 'aria-hidden': 'true' }, x.ok === true ? '✓ ' : x.ok === false ? '⚠ ' : 'ℹ '), h('span', { class: 'sr-only' }, x.ok === true ? 'Passed: ' : x.ok === false ? 'Problem: ' : 'Note: '), x.text);
+    })) : null;
+    var ack = st.rows.length && stt.mustAck ? h('label', { class: 'check' }, h('input', { type: 'checkbox', id: 'pdf-ack', checked: !!f.pdfAck, onchange: function (e) { f.pdfAck = e.target.checked; App.render(); var x = document.getElementById('pdf-ack'); if (x) x.focus(); } }),
+      h('span', null, stt.failed ? 'I have checked these lines against my statement: import anyway' : 'Nothing could prove these numbers: I have checked the lines against my statement')) : null;
+    return h('div', { class: 'notice stack-sm pdf-note', role: 'status' }, line1, line2, list, st.notes.length ? h('div', { class: 'small muted' }, st.notes.join(' ')) : null, ack);
   }
   /* Under a possible duplicate (or one you decided on): what it seems to repeat, and the three answers */
   function dupChoice(f, it) {
@@ -254,6 +265,7 @@ var Importer = (function () {
   function doImport(f, which, quiet) {
     var chosen = f.items.filter(function (it) { return it.selectable && (which === 'all' ? (it.state === 'ready' || it.state === 'review') : it.selected); });
     if (!f.accountId) { if (!quiet) UI.toast('Choose which account this file is from first.'); return Promise.resolve(0); }
+    if (needsAck(f)) { if (!quiet) UI.toast('Tick the box to confirm you checked this statement\'s lines first.'); return Promise.resolve(0); }
     if (!chosen.length) { if (!quiet) UI.toast('Nothing selected to import.'); return Promise.resolve(0); }
     var batchId = U.uid(), stamp = new Date().toISOString(), list = [];
     chosen.forEach(function (it) { list = list.concat(toTx(f, it, batchId, stamp)); });
@@ -339,13 +351,13 @@ var Importer = (function () {
 
     if (files.length > 1) {
       var pending = files.filter(function (f) { return !f.done; });
-      var noAcct = pending.filter(function (f) { return !f.accountId; });
+      var noAcct = pending.filter(function (f) { return !f.accountId; }), noAck = pending.filter(needsAck);
       var rowsAll = pending.reduce(function (a, f) { return a + f.items.filter(function (it) { return it.state === 'ready' || it.state === 'review'; }).length; }, 0);
       main.appendChild(h('div', { class: 'row between' },
         h('div', { class: 'row', role: 'tablist', 'aria-label': 'Files' }, files.map(function (f, i) {
           return h('button', { type: 'button', role: 'tab', class: 'chip', 'aria-pressed': i === cur ? 'true' : 'false', 'aria-selected': i === cur ? 'true' : 'false', onclick: function () { cur = i; App.render(); } }, f.name + (f.done ? ' ✓' : ''));
         })),
-        pending.length > 1 ? h('button', { type: 'button', class: 'btn primary', disabled: noAcct.length > 0 || !rowsAll, title: noAcct.length ? 'Still needs an account: ' + noAcct.map(function (f) { return f.name; }).join(', ') : null, onclick: function () {
+        pending.length > 1 ? h('button', { type: 'button', class: 'btn primary', disabled: noAcct.length > 0 || noAck.length > 0 || !rowsAll, title: noAck.length ? 'Confirm the PDF checks first: ' + noAck.map(function (f) { return f.name; }).join(', ') : noAcct.length ? 'Still needs an account: ' + noAcct.map(function (f) { return f.name; }).join(', ') : null, onclick: function () {
           var total = 0, review = 0, names = pending.map(function (f) { return f.name; }), chain = Promise.resolve();
           pending.forEach(function (f) { chain = chain.then(function () { return doImport(f, 'all', true).then(function (n) { total += n; review += f.done ? f.done.review : 0; }); }); });
           chain.then(function () {
@@ -353,6 +365,7 @@ var Importer = (function () {
             allPrompt = { names: names, rows: total, review: review }; App.render(); UI.toast('Imported ' + total + ' rows from ' + pending.length + ' files.' + (logged.length ? ' ' + logged.join(' ') : ''));
           });
         } }, 'Import all files (' + rowsAll + ' rows)') : null));
+      if (pending.length > 1 && noAck.length) main.appendChild(h('div', { class: 'small amber' }, noAck.length + ' PDF statement' + (noAck.length === 1 ? ' needs' : 's need') + ' your confirmation first: ' + noAck.map(function (f) { return f.name; }).join(', ') + '.'));
       if (pending.length > 1 && noAcct.length) main.appendChild(h('div', { class: 'small amber' }, noAcct.length + ' file' + (noAcct.length === 1 ? ' still needs' : 's still need') + ' an account: ' + noAcct.map(function (f) { return f.name; }).join(', ') + '.'));
     }
     if (files[cur]) fileView(main, files[cur]);
@@ -425,7 +438,7 @@ var Importer = (function () {
 
     // Things worth knowing, shown only when they apply
     var notes = h('div', { class: 'stack-sm' });
-    if (f.pdf) notes.appendChild(statementNote(f.pdf));
+    if (f.pdf) notes.appendChild(statementNote(f.pdf, f));
     if (f.accountId && !f.pdf) {
       var neg = f.signUsed === 'bank', flip = function () { f.signMode = neg ? 'card' : 'bank'; analyse(f); App.render(); };
       if (f.signAuto || f.signMode) notes.appendChild(h('div', { class: 'notice row between', role: 'status' },
@@ -521,11 +534,11 @@ var Importer = (function () {
     if (!shown.length) body.appendChild(h('div', { class: 'muted' }, 'No rows in this view.'));
 
     // 4. Import
-    var ok = sm.reconciled && !!f.accountId, skipped = cnt.dup + cnt.before + cnt.fix;
+    var ok = sm.reconciled && !!f.accountId && !needsAck(f), skipped = cnt.dup + cnt.before + cnt.fix;
     body.appendChild(h('div', { class: 'stack-sm import-bar' }, h('div', { class: 'row' },
       h('button', { type: 'button', class: 'btn primary', style: { minHeight: '44px' }, disabled: !ok || !allN, onclick: function () { doImport(f, 'all'); } }, 'Import all (' + allN + ')'),
       sel !== allN ? h('button', { type: 'button', class: 'btn', disabled: !ok || !sel, onclick: function () { doImport(f, 'selected'); } }, 'Import selected (' + sel + ')') : null),
-      h('div', { class: 'small muted' }, !f.accountId ? 'Choose the account first.' : 'Takes the ready and flagged rows' + (skipped + cnt.maybe ? ' and leaves out ' + (skipped + cnt.maybe) + ' (' + [cnt.maybe ? cnt.maybe + ' possible duplicate' + (cnt.maybe === 1 ? '' : 's') : '', skipped ? 'already in the app, before your cut-over, or needing a fix' : ''].filter(Boolean).join('; ') + '; decide on a row, or tick it and use "Import selected")' : '') + '. Flagged rows are imported and wait in Review.')));
+      h('div', { class: 'small muted' }, !f.accountId ? 'Choose the account first.' : needsAck(f) ? 'Tick the box above to confirm you checked the lines.' : 'Takes the ready and flagged rows' + (skipped + cnt.maybe ? ' and leaves out ' + (skipped + cnt.maybe) + ' (' + [cnt.maybe ? cnt.maybe + ' possible duplicate' + (cnt.maybe === 1 ? '' : 's') : '', skipped ? 'already in the app, before your cut-over, or needing a fix' : ''].filter(Boolean).join('; ') + '; decide on a row, or tick it and use "Import selected")' : '') + '. Flagged rows are imported and wait in Review.')));
     if (f.done) box.appendChild(h('details', { class: 'more' }, h('summary', { class: 'strong' }, 'Show the rows from this file'), body));
     main.appendChild(box);
   }
