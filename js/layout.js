@@ -50,6 +50,17 @@ var Layout = (function () {
     while ((m = re.exec(it.s))) { var x1 = it.x + it.w * ((m.index + m[0].length) / len); out.push({ s: m[0], x0: it.x + it.w * (m.index / len), x1: x1, xe: x1, fs: it.fs }); }
     return out;
   }
+  /* Pieces that touch or overlap are one word: a PDF may store "2026-09-11" as "2026-09-1" + "1", or "Visa In" + "fi" + "nite".
+     Real spaces between words, and gaps between columns, are far wider than this. */
+  function glueTouching(words) {
+    var out = [];
+    words.forEach(function (w) {
+      var p = out[out.length - 1];
+      if (p && w.x0 - p.x1 <= Math.max(0.5, (w.fs || 8) * 0.12)) { p.s += w.s; p.x1 = Math.max(p.x1, w.x1); p.xe = Math.max(p.xe || p.x1, w.xe || w.x1); }
+      else out.push({ s: w.s, x0: w.x0, x1: w.x1, xe: w.xe, fs: w.fs });
+    });
+    return out;
+  }
   /* "250.00" followed by "CR" (or a hanging "-") becomes one word; xe stays the edge of the number itself */
   function mergeSuffixes(words) {
     var out = [];
@@ -73,7 +84,7 @@ var Layout = (function () {
       var ws = [];
       r.items.forEach(function (it) { ws = ws.concat(splitWords(it)); });
       ws.sort(function (a, b) { return a.x0 - b.x0; });
-      r.words = mergeSuffixes(ws);
+      r.words = mergeSuffixes(glueTouching(ws));
       r.fs = median(r.items.map(function (i) { return i.fs || 8; }));
       r.text = r.words.map(function (w) { return w.s; }).join(' ');
     });
@@ -362,6 +373,7 @@ var Layout = (function () {
           if (hasDate && money) kind = 'tx';
           else if (pb && !money && BAL.test(descText + ' ' + (cells.date || ''))) kind = 'bal';
           else if (!hasDate && money && (/total/i.test(descText + ' ' + (cells.ref || '')) || (inTable && lastTableY !== null && r.y - lastTableY <= r.fs * 3.2 && /total/i.test((cells.date || '') + ' ' + (cells.date2 || ''))))) kind = 'total';   // the label can sit in the date columns ("Total of | Payments"), but only right under table lines, so a summary box further down is never mistaken for a section total
+          else if (hasDate && /install?ment|\b\d+\s+months?\b.*%|\bterm\b/i.test(r.text)) kind = 'other';   // an instalment plan's schedule (start date, original amount, "12 MONTHS INSTALLMENT AT 7.99%"): not a transaction
           else if (hasDate) kind = 'datedNoAmount';
           else if (!money && !pb && descText && (lastKind === 'tx' || lastKind === 'cont') && r.y - lastY <= r.fs * 2.6) kind = 'cont';
           else kind = 'other';
