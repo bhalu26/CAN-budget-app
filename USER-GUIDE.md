@@ -58,6 +58,7 @@ You can import **CSV files** (downloaded from your bank's website) or **PDF stat
 1. **Import:** choose one or more CSV files or PDF statements. The app detects the bank, the account (from the last 4 digits) and the columns, and explains each choice. If a column is wrong, correct it once and it's remembered.
 2. **Check the rows:** every row read is listed with its status (Ready, Flagged, Needs a fix, Already in the app, Before cut-over). Files with a running balance are checked against the bank's balance.
    - **Possible duplicates** are rows that may repeat a line already in the app (one you typed, or one imported before). They start unticked; choose **Same: leave it out**, **Different: import it**, or, for a line you typed, **Replace mine with the bank's** (it keeps your category; Undo brings your line back).
+   - A row with the **same amount as another imported line** a few days apart, under a different name, is imported but sent to Review with the reason, so you can check it isn't the same payment.
    - If a card file lists purchases as negative amounts, the app notices and says so; **Read amounts the other way** switches it. The choice is remembered for that bank.
 3. **Import all** (or tick rows and use **Import selected**). Use **Undo this import** if something looks wrong.
 4. Transfers between your own accounts are matched automatically and flagged for you to confirm in Review.
@@ -98,7 +99,7 @@ Pick an account at the top to see one account only. Every number opens the trans
 ## Data health
 
 One page (`G D`) listing what could make your numbers wrong:
-- possible duplicates (the same payment typed and imported, or imported twice; names are compared by their words and small amount differences are allowed)
+- possible duplicates: the same payment typed and imported, or imported twice. Names are compared by their words, small amount differences are allowed, and the same amount to the cent within 3 days counts even under different names
 - balances the transactions don't explain
 - lines waiting for review
 - missing categories

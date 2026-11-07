@@ -121,7 +121,10 @@ var Importer = (function () {
       if (existing[it.fp]) { it.state = 'dup'; it.reasons.unshift('Already in the app'); }
       else if (f.accountId && also[it.fp]) { it.state = 'dup'; it.reasons.unshift('Also in ' + also[it.fp] + ' (loaded together): imported once'); }
       else if (it.date < cutOver) { it.state = 'before'; it.reasons.unshift('Before your cut-over (' + cutOver + '); Excel history covers it'); }
-      else if (f.accountId && (mb = maybeDup(f, it, near, claimed))) {
+      else if (f.accountId && (mb = maybeDup(f, it, near, claimed)) && mb.soft) {   // imported as usual, but checked in Review
+        it.reasons.push(mb.why); it.review = true; it.state = 'review';
+      }
+      else if (f.accountId && mb) {
         it.maybe = mb; claimed[mb.t.id] = 1;
         if (it.dupChoice === 'replace' && mb.t.categoryId && !it.touched) { it.catId = mb.t.categoryId; it.touched = true; it.reasons = []; it.review = false; applyCat(it); }   // the bank's line takes your typed line's category
         if (it.dupChoice === 'keep' || it.dupChoice === 'replace') it.state = it.review ? 'review' : 'ready';
@@ -146,14 +149,16 @@ var Importer = (function () {
   function maybeDup(f, it, near, claimed) {
     if (!it.date || it.amountRaw === null || it.amountRaw === undefined) return null;
     var row = { id: '__row', date: it.date, amount: Math.abs(it.amountRaw), direction: it.amountRaw < 0 ? 'out' : 'in', desc: it.desc, categoryId: it.catId, type: it.type, source: 'csv', accountId: f.accountId, batchId: '__new' };
-    var best = null, rank = { high: 3, medium: 2, low: 1 };
+    var best = null, soft = null, rank = { high: 3, medium: 2, low: 1 };
     for (var k = -7; k <= 7; k++) {
       (near[Recurring.addDays(it.date, k)] || []).forEach(function (t) {
         if (claimed[t.id] || (t.auto && t.updatedAt === t.createdAt)) return;   // a line logged for a missed bill: the real payment replaces it by itself
-        var r = Match.dup(row, t); if (!r || r.level === 'low') return;
+        var r = Match.dup(row, t); if (!r) return;
+        if (r.level === 'low') { if (r.byAmount && (!soft || r.gap < soft.gap)) soft = { t: t, gap: r.gap }; return; }   // same amount under another name: a note, not held back
         if (!best || rank[r.level] > rank[best.level] || (rank[r.level] === rank[best.level] && r.gap < best.gap)) best = { t: t, level: r.level, gap: r.gap, why: r.why };
       });
     }
+    if (!best && soft) return { soft: true, t: soft.t, why: 'Same amount as ' + (soft.t.desc || UI.catName(soft.t.categoryId)) + ' on ' + U.shortDate(soft.t.date) + ' (' + (UI.acctName(soft.t) || 'another import') + '): check it is not the same payment' };
     if (!best) return null;
     var t = best.t, hand = Match.origin(t) === 'hand';
     best.hand = hand && t.source !== 'excel';

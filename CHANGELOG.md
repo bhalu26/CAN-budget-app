@@ -27,7 +27,10 @@ Versions follow [Semantic Versioning](https://semver.org). Older budget files ke
   - The import buttons stay in view while you scroll a long file.
 - Transfers between your accounts are matched up to 5 days apart (pre-authorized payments can take a few business days).
 
+- **Duplicates by amount, too.** The same amount to the cent within 3 days now counts as a possible duplicate even when the names differ (a typed "Lunch out" and the bank's "PHO HOUSE"). Typed vs imported is held back on Import with the usual choices; two imports are imported but sent to Review with the reason; Data health lists both. Left out: money in vs money out, transfers between your accounts, saving transfers, amounts under $5, and two lines from one bank file.
+
 **Fixed**
+- On the Import screen, ticking a row or changing its category no longer makes the list of rows jump back to the top.
 - Data health no longer says "balances and transactions do not add up" for an account you only update by hand (a TFSA, say): an account with no transactions has nothing to check its balances against. Accounts you import are still checked, even when nothing came in between two balances, since a statement may be missing.
 - A tab left open past the end of a month now logs missed bills by itself (when you come back to it, or within 10 minutes), instead of waiting for you to change screens.
 - Two open tabs can no longer log the same missed bill twice.

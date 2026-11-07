@@ -13,14 +13,22 @@
   /* Redraws the screen in place: the scroll position and the focused field stay where they were
      (the page keeps its height while it is rebuilt, so the browser has no reason to jump to the top). */
   App.render = function () {
-    var main = document.getElementById('main'), y = window.scrollY, back = U.holdFocus(main);
+    var main = document.getElementById('main'), y = window.scrollY, back = U.holdFocus(main), boxes = scrolled(main);
     main.style.minHeight = main.offsetHeight + 'px';
     try { draw(U.clear(main)); } finally {
       main.style.minHeight = '';
       window.scrollTo(0, y);
+      restoreScrolled(main, boxes);   // a box of rows (Import's table) stays where you had scrolled it too
       back();   // focus stays on the control you used (or what replaced it), so the next Tab does not start from the top
     }
   };
+  /* Boxes inside the page that scroll on their own, and how far: found again after a redraw by their order on the screen */
+  function boxesIn(main) { return Array.prototype.filter.call(main.querySelectorAll('.scroll-x, [style*="overflow"]'), function (el) { return el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1 ? /(auto|scroll)/.test(getComputedStyle(el).overflowY + getComputedStyle(el).overflowX) : false; }); }
+  function scrolled(main) { return boxesIn(main).map(function (el) { return { top: el.scrollTop, left: el.scrollLeft }; }); }
+  function restoreScrolled(main, was) {
+    if (!was.length || !was.some(function (w) { return w.top || w.left; })) return;
+    boxesIn(main).forEach(function (el, i) { var w = was[i]; if (w) { el.scrollTop = w.top; el.scrollLeft = w.left; } });
+  }
   function draw(main) {
     if (Share.wantsOpenScreen()) { U.clear(document.getElementById('nav')); Share.openScreen(main); return; }
     if (!App.cfg) { (WorkFile.hosted() || App.fileWelcome ? fileWelcome : firstRun)(main); U.clear(document.getElementById('nav')); return; }

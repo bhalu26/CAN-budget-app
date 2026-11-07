@@ -52,7 +52,8 @@ var Match = (function () {
 
   /* Could these two lines be one payment counted twice? -> null, or { level: 'high'|'medium'|'low', why, gap }.
      Never: money in against money out (a purchase and its refund), two parts of one split, the two sides of a transfer,
-     a repayment and its bill, two lines from one bank file on different days (the bank listed two charges). */
+     a repayment and its bill, two lines from one bank file on different days (the bank listed two charges).
+     Names that do not match at all still count when the amount is the same to the cent within 3 days (see byAmount). */
   function dup(x, y) {
     if (!x.date || !y.date || x.id === y.id) return null;
     if (out(x) !== out(y)) return null;
@@ -65,8 +66,17 @@ var Match = (function () {
     var nm = name(x.desc, y.desc), cat = !!x.categoryId && x.categoryId === y.categoryId && x.categoryId.charAt(0) !== '_';
     var ox = origin(x), oy = origin(y), when = gap === 0 ? 'the same day' : gap === 1 ? 'a day apart' : gap + ' days apart';
     var amt = am === 'exact' ? '' : ' (' + money(x.amount) + ' and ' + money(y.amount) + ')';
+    /* the same amount to the cent within 3 days under different names: possibly one payment recorded twice
+       (not transfers between your accounts, not saving transfers, which repeat round amounts by design, not under $5, where repeats are chance) */
+    var label = function (t) { return (t.desc || 'no name').replace(/\s+/g, ' ').slice(0, 28); };
+    var byAmount = function (level) {
+      if (am !== 'exact' || gap > 3 || Math.abs(x.amount) < 5) return null;
+      if (x.type === 'transfer' || y.type === 'transfer' || x.type === 'saving' || y.type === 'saving') return null;
+      return { level: level, why: 'Same amount, ' + money(x.amount) + ', ' + when + ' under different names (' + label(x) + ' / ' + label(y) + '): one payment recorded twice?', gap: gap, byAmount: true };
+    };
     if (ox === 'bank' && oy === 'bank') {
-      if (am !== 'exact' || !(nm === 'same' || nm === 'close')) return null;
+      if (!(nm === 'same' || nm === 'close')) return x.batchId && x.batchId === y.batchId ? null : byAmount('low');   // one bank file lists separate charges
+      if (am !== 'exact') return null;
       if (x.batchId && x.batchId === y.batchId) return gap === 0 && nm === 'same' ? { level: 'low', why: 'Repeated in the same file', gap: gap } : null;
       if (x.accountId && x.accountId !== y.accountId) return gap <= 1 && nm === 'same' ? { level: 'low', why: 'The same charge in two accounts ' + when + ' (a card payment, or one counted twice?)', gap: gap } : null;
       if (gap === 0) return { level: 'high', why: 'In two different imports', gap: gap };
@@ -76,14 +86,14 @@ var Match = (function () {
     if (ox !== oy) {   // typed (or Excel) and imported: the bank's date and amount can differ a little
       if (gap > 3) return null;   // a typed line and the bank's posting: at most a few days apart (small repeat buys are common)
       var named = nm === 'same' || nm === 'close', likely = named || (nm === 'weak' && cat) || (cat && am === 'exact' && gap <= 3);
-      if (!likely && !(am === 'exact' && gap <= 1 && !nm && (!x.desc || !y.desc))) return null;
+      if (!likely && !(am === 'exact' && gap <= 1 && !nm && (!x.desc || !y.desc))) return byAmount('medium');   // typed "Coffee", imported "BEANERY 22": same amount, nearby date
       var level = am === 'exact' && gap <= 1 && (named || cat) ? 'high' : 'medium';
       return { level: level, why: 'Typed by hand and also imported, ' + when + amt, gap: gap };
     }
     // both typed or from the Excel history
-    if (am !== 'exact' || gap > 1) return null;
-    if (nm === 'same' || nm === 'close') return { level: 'low', why: 'Entered twice? Same amount and merchant ' + when + ' (or two real ones, like two tickets)', gap: gap };
-    return null;
+    if (am !== 'exact') return null;
+    if ((nm === 'same' || nm === 'close') && gap <= 1) return { level: 'low', why: 'Entered twice? Same amount and merchant ' + when + ' (or two real ones, like two tickets)', gap: gap };
+    return nm === 'same' || nm === 'close' ? null : byAmount('low');
   }
   return { key: key, words: words, name: name, fits: fits, amount: amount, dup: dup, origin: origin, NOISE: NOISE };
 })();

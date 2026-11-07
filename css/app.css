@@ -552,3 +552,6 @@ details.more[open] > summary::before { content: '▾'; content: '▾' / ''; }
 .dup-choice .small-btn { min-height: 32px; padding: 4px 10px; font-size: 13px; }
 .dup-choice .small-btn[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .pdf-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+
+/* Data health: a long merchant name with no spaces (quoted in a duplicate's reason) wraps instead of widening the card */
+.hl-card h3, .hl-card .hl-detail, .hl-tx-main { overflow-wrap: anywhere; min-width: 0; }
